@@ -15,7 +15,7 @@ use rs_voice::SfuConfig;
 use tokio::net::TcpListener;
 use tracing_subscriber::EnvFilter;
 
-use crate::router::build_router;
+use crate::router::build_router_with_static;
 use crate::state::AppState;
 use crate::tls::{ServeMode, resolve_serve_mode};
 
@@ -41,7 +41,7 @@ async fn main() -> anyhow::Result<()> {
     let state = AppState::with_sfu_config(pool, &config.jwt_secret, SfuConfig::from(&config))?;
     state.text_service.seed_default_channel().await?;
     state.voice_service.seed_default_channel().await?;
-    let app = build_router(state);
+    let app = build_router_with_static(state, &config.static_dir);
 
     match serve_mode {
         ServeMode::Tls {

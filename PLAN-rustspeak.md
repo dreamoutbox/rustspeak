@@ -125,13 +125,13 @@ Each lib crate: `thiserror` errors in `error.rs`; `rs-server` uses `anyhow` at b
   - [x] Server-side tests with two `webrtc` test clients exchanging RTP
 - Done when: automated test sees RTP from client A at client B and not echoed to A; manual two-browser check passes (Phase 14).
 
-### Phase 11: Frontend scaffold and auth UI [STATUS: TODO]
+### Phase 11: Frontend scaffold and auth UI [STATUS: DONE]
 - Goal: Vue app with login/register and session handling.
 - Tasks:
-  - [ ] `web/` with Vite + Vue 3 + TS + Bootstrap 5, Pinia, Vue Router
-  - [ ] API client with access token + refresh-on-401
-  - [ ] Login/register pages, route guards, admin-only nav by role
-  - [ ] Dev proxy to the HTTPS backend; build output served by `rs-server` (static files)
+  - [x] `web/` with Vite + Vue 3 + TS + Bootstrap 5, Pinia, Vue Router
+  - [x] API client with access token + refresh-on-401
+  - [x] Login/register pages, route guards, admin-only nav by role
+  - [x] Dev proxy to the HTTPS backend; build output served by `rs-server` (static files)
 - Done when: `npm run build` and type-check pass; manual login works against the local server.
 
 ### Phase 12: Frontend text and DM UI [STATUS: TODO]

@@ -280,6 +280,7 @@ fn tls_refuses_to_start_without_certs_or_insecure_flag() {
         stun_url: None,
         ice_udp_port_min: 40000,
         ice_udp_port_max: 40100,
+        static_dir: std::path::PathBuf::from("web/dist"),
     };
 
     assert!(crate::tls::resolve_serve_mode(&cfg, false).is_err());

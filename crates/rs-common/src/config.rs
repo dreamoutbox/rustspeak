@@ -7,6 +7,7 @@ const DEFAULT_BIND_ADDR: &str = "127.0.0.1:8443";
 const DEFAULT_ICE_BIND_IP: &str = "127.0.0.1";
 const DEFAULT_ICE_UDP_PORT_MIN: u16 = 40000;
 const DEFAULT_ICE_UDP_PORT_MAX: u16 = 40100;
+const DEFAULT_STATIC_DIR: &str = "web/dist";
 const MIN_JWT_SECRET_LEN: usize = 32;
 
 /// Application configuration loaded from environment variables.
@@ -32,6 +33,8 @@ pub struct Config {
     pub ice_udp_port_min: u16,
     /// Inclusive upper bound of the UDP port range for WebRTC ICE (`ICE_UDP_PORT_MAX`).
     pub ice_udp_port_max: u16,
+    /// Directory containing built frontend static assets (`STATIC_DIR`).
+    pub static_dir: PathBuf,
 }
 
 impl Config {
@@ -87,6 +90,9 @@ impl Config {
             )));
         }
 
+        let static_dir =
+            non_empty_path(&get, "STATIC_DIR").unwrap_or_else(|| PathBuf::from(DEFAULT_STATIC_DIR));
+
         Ok(Self {
             database_url,
             bind_addr,
@@ -98,6 +104,7 @@ impl Config {
             stun_url,
             ice_udp_port_min,
             ice_udp_port_max,
+            static_dir,
         })
     }
 }
