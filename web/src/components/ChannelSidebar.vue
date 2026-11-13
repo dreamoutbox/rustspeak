@@ -118,7 +118,10 @@
       class="border-top p-2 bg-body d-flex flex-column gap-2"
     >
       <div class="d-flex align-items-center justify-content-between small">
-        <span class="fw-semibold text-truncate">{{ voice.activeVoiceChannel.name }}</span>
+        <span class="fw-semibold text-truncate">
+          {{ voice.activeVoiceChannel.name }}
+          <span v-if="!voice.hasMicrophone" class="text-secondary fw-normal">(listen-only)</span>
+        </span>
         <span
           class="badge"
           :class="
@@ -137,9 +140,11 @@
           type="button"
           class="btn"
           :class="voice.muted ? 'btn-warning' : 'btn-outline-secondary'"
+          :disabled="!voice.hasMicrophone"
+          :title="voice.hasMicrophone ? 'Toggle microphone' : 'No microphone detected'"
           @click="voice.toggleMute()"
         >
-          {{ voice.muted ? 'Unmute' : 'Mute' }}
+          {{ voice.hasMicrophone ? (voice.muted ? 'Unmute' : 'Mute') : 'No Mic' }}
         </button>
         <button
           type="button"

@@ -27,13 +27,24 @@ flowchart LR
 
 | Protocol | Default Port(s) | Purpose |
 | --- | --- | --- |
-| TCP | `8443` (or `443` in prod) | HTTPS REST API, static SPA, and WSS WebSocket gateway |
-| UDP | `40000-40100` (`ICE_UDP_PORT_MIN`..`ICE_UDP_PORT_MAX`) | WebRTC SFU ICE/DTLS/SRTP Opus audio media |
+| TCP | `80`, `443` | Caddy reverse proxy: automatic Let's Encrypt HTTPS/WSS signaling and static SPA |
+| UDP | `40000-40100` (`ICE_UDP_PORT_MIN`..`ICE_UDP_PORT_MAX`) | WebRTC SFU DTLS-SRTP Opus audio media (`app` container directly) |
 
-- For LAN/localhost testing, default `ICE_BIND_IP=127.0.0.1` (or your LAN IP) works without STUN.
-- Behind NAT or across the internet, open/forward both the TCP HTTPS port and the entire UDP media range (`40000-40100/udp`), set `ICE_BIND_IP` to the reachable host IP, and optionally set `STUN_URL`.
+- Signaling (REST + `/ws`) uses **TLS** at Caddy; WebRTC media uses **DTLS-SRTP** directly over UDP (`40000-40100`).
+- On a VPS with only a public IP (no purchased domain), set `PUBLIC_HOST=<YOUR_VPS_IP>.sslip.io` in `.env`. Caddy automatically obtains a browser-trusted Let's Encrypt certificate so friends never need to trust a self-signed certificate.
+- `STUN_URL=stun:stun.l.google.com:19302` is enabled by default and shared with browser clients via `GET /api/voice/config`.
 
-## Local Development Setup
+## Quick Start (Docker Compose + Caddy)
+
+```sh
+./setup.sh
+```
+
+- Local development: `PUBLIC_HOST=:80` serves `http://localhost` (a browser Secure Context for microphone access).
+- VPS production: set `PUBLIC_HOST=<YOUR_VPS_IP>.sslip.io` (or your domain) and a strong `JWT_SECRET` in `.env`, open TCP `80`/`443` and UDP `40000-40100`, then run `./setup.sh`.
+- Database bootstrap with mock users/channels: `./scripts/dev-db-wrapper.sh`.
+
+## Local Cargo Development (Without Docker App)
 
 ### 1. Start PostgreSQL 18
 
@@ -61,15 +72,6 @@ cargo run -p rs-server
 
 For frontend hot-reload during development, run `cd web && npm run dev` (proxies `/api` and `/ws` to `https://127.0.0.1:8443`).
 To run without TLS in local development only, pass `--insecure-dev` or set `INSECURE_DEV=true`.
-
-## Full-Stack Docker Profile
-
-Generate dev certs (or mount your own), set `JWT_SECRET`, and start Postgres + `rs-server`:
-
-```sh
-./scripts/dev-cert.sh
-docker compose --profile full up -d --build
-```
 
 ## End-to-End Smoke Checklist
 

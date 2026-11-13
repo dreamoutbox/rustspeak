@@ -31,6 +31,30 @@ pub struct CreateVoiceChannelRequest {
     pub name: String,
 }
 
+#[derive(Serialize)]
+pub struct IceServerConfig {
+    pub urls: Vec<String>,
+}
+
+#[derive(Serialize)]
+pub struct VoiceConfigResponse {
+    pub ice_servers: Vec<IceServerConfig>,
+}
+
+/// Returns WebRTC ICE/STUN configuration for browser clients (`GET /api/voice/config`).
+pub async fn get_config(
+    State(state): State<AppState>,
+    _auth: AuthUser,
+) -> Json<VoiceConfigResponse> {
+    let ice_servers = match &state.stun_url {
+        Some(url) => vec![IceServerConfig {
+            urls: vec![url.clone()],
+        }],
+        None => Vec::new(),
+    };
+    Json(VoiceConfigResponse { ice_servers })
+}
+
 /// Lists all voice channels and their current participants (`GET /api/voice/channels`).
 pub async fn list_channels(
     State(state): State<AppState>,

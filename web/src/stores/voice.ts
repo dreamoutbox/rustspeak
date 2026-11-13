@@ -9,11 +9,13 @@ const SPEAKING_POLL_MS = 80;
 
 export const useVoiceStore = defineStore('voice', () => {
   const voiceChannels = ref<VoiceChannel[]>([]);
+  const iceServers = ref<RTCIceServer[]>([]);
   const participantsByChannel = ref<Record<string, string[]>>({});
   const activeVoiceChannelId = ref<string | null>(null);
   const connectionState = ref<'idle' | 'connecting' | 'connected' | 'failed'>('idle');
   const muted = ref(false);
   const deafened = ref(false);
+  const hasMicrophone = ref(true);
   const isSpeaking = ref(false);
   const errorMessage = ref('');
   const remoteStreams = ref<MediaStream[]>([]);
@@ -150,8 +152,12 @@ export const useVoiceStore = defineStore('voice', () => {
 
   async function loadVoiceChannels(): Promise<void> {
     initRealtimeSync();
-    const res = await apiFetch<{ channels: VoiceChannel[] }>('/api/voice/channels');
-    voiceChannels.value = res.channels;
+    const [channelsRes, configRes] = await Promise.all([
+      apiFetch<{ channels: VoiceChannel[] }>('/api/voice/channels'),
+      apiFetch<{ ice_servers: RTCIceServer[] }>('/api/voice/config'),
+    ]);
+    voiceChannels.value = channelsRes.channels;
+    iceServers.value = configRes.ice_servers;
   }
 
   function cleanupPeer(): void {
@@ -203,27 +209,43 @@ export const useVoiceStore = defineStore('voice', () => {
       await leaveVoice();
     }
 
-    let stream: MediaStream;
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-    } catch (err) {
-      errorMessage.value = formatMicError(err);
-      return;
+    let stream: MediaStream | null = null;
+    if (navigator.mediaDevices?.getUserMedia) {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        hasMicrophone.value = true;
+      } catch (err) {
+        if (
+          err instanceof DOMException &&
+          (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError')
+        ) {
+          // Allow listen-only join when no microphone hardware is attached.
+          hasMicrophone.value = false;
+          muted.value = true;
+        } else {
+          errorMessage.value = formatMicError(err);
+          return;
+        }
+      }
+    } else {
+      hasMicrophone.value = false;
+      muted.value = true;
     }
 
-    localStream = stream;
-    for (const track of stream.getAudioTracks()) {
-      track.enabled = !muted.value && !deafened.value;
-    }
-    startSpeakingDetector(stream);
-
-    const peer = new RTCPeerConnection({ iceServers: [] });
+    const peer = new RTCPeerConnection({ iceServers: iceServers.value });
     pc = peer;
     connectionState.value = 'connecting';
     activeVoiceChannelId.value = channelId;
 
-    for (const track of stream.getAudioTracks()) {
-      peer.addTrack(track, stream);
+    if (stream) {
+      localStream = stream;
+      for (const track of stream.getAudioTracks()) {
+        track.enabled = !muted.value && !deafened.value;
+        peer.addTrack(track, stream);
+      }
+      startSpeakingDetector(stream);
+    } else {
+      peer.addTransceiver('audio', { direction: 'recvonly' });
     }
 
     peer.onicecandidate = (ev) => {
@@ -315,6 +337,7 @@ export const useVoiceStore = defineStore('voice', () => {
     connectionState,
     muted,
     deafened,
+    hasMicrophone,
     isSpeaking,
     errorMessage,
     remoteStreams,

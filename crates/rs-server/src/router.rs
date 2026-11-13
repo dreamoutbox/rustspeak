@@ -93,6 +93,7 @@ pub fn build_router_with_static(state: AppState, static_dir: &Path) -> Router {
             "/api/dms",
             get(routes::dms::list_dms).post(routes::dms::open_dm),
         )
+        .route("/api/voice/config", get(routes::voice::get_config))
         .route(
             "/api/voice/channels",
             get(routes::voice::list_channels).post(routes::voice::create_channel),

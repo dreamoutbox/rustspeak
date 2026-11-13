@@ -5,3 +5,5 @@ certs/
 *.key
 web/node_modules/
 web/dist/
+data/
+.env.production

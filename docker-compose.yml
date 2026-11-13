@@ -11,14 +11,14 @@ services:
       - pgdata:/var/lib/postgresql
       - ./scripts/pg-healthcheck.sh:/scripts/pg-healthcheck.sh:ro
     healthcheck:
-      test: ["CMD", "/scripts/pg-healthcheck.sh"]
+      test: [ "CMD", "/scripts/pg-healthcheck.sh" ]
       interval: 5s
       timeout: 5s
       retries: 10
       start_period: 10s
 
   app:
-    profiles: ["full"]
+    image: rustspeak:latest
     build:
       context: .
       dockerfile: Dockerfile
@@ -29,17 +29,42 @@ services:
       DATABASE_URL: postgres://${POSTGRES_USER:-rustspeak}:${POSTGRES_PASSWORD:-rustspeak}@postgres:5432/${POSTGRES_DB:-rustspeak}
       BIND_ADDR: 0.0.0.0:8443
       JWT_SECRET: ${JWT_SECRET:-change-me-to-a-random-32-byte-secret-value}
-      TLS_CERT_PATH: /certs/localhost.pem
-      TLS_KEY_PATH: /certs/localhost-key.pem
+      INSECURE_DEV: "true"
       STATIC_DIR: /app/web/dist
       ICE_BIND_IP: ${ICE_BIND_IP:-0.0.0.0}
+      STUN_URL: ${STUN_URL:-stun:stun.l.google.com:19302}
       ICE_UDP_PORT_MIN: ${ICE_UDP_PORT_MIN:-40000}
       ICE_UDP_PORT_MAX: ${ICE_UDP_PORT_MAX:-40100}
+    expose:
+      - "8443"
     ports:
-      - "8443:8443/tcp"
       - "40000-40100:40000-40100/udp"
+
+  caddy:
+    image: caddy:2-alpine
+    depends_on:
+      - app
+    environment:
+      PUBLIC_HOST: ${PUBLIC_HOST:-:80}
+    ports:
+      - "80:80"
+      - "443:443"
     volumes:
-      - ./certs:/certs:ro
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./data/caddy_data:/data
+      - ./data/caddy_config:/config
+
+  adminer:
+    image: adminer:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    ports:
+      - "${ADMINER_PORT:-8080}:8080"
 
 volumes:
   pgdata:
+  caddy_data:
+  caddy_config:

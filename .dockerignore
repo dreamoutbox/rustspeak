@@ -1,0 +1,9 @@
+.git
+.env
+target
+certs
+*.pem
+*.key
+web/node_modules
+web/dist
+

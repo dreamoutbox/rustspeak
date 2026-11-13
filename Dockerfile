@@ -5,7 +5,7 @@ RUN npm ci
 COPY web/ ./
 RUN npm run build
 
-FROM rust:1.86-bookworm AS rust-builder
+FROM rust:bookworm AS rust-builder
 WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
 COPY crates ./crates
@@ -26,4 +26,3 @@ EXPOSE 8443/tcp
 EXPOSE 40000-40100/udp
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
-

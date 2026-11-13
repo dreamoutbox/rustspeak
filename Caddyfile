@@ -1,0 +1,9 @@
+{
+    log {
+        format console
+    }
+}
+
+{$PUBLIC_HOST::80} {
+	reverse_proxy app:8443
+}

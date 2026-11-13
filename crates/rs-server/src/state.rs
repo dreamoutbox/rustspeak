@@ -23,6 +23,7 @@ pub struct AppState {
     pub sfu: SfuEngine,
     pub token_service: TokenService,
     pub ws_hub: WsHub,
+    pub stun_url: Option<String>,
     pub auth_limiter: RateLimiter,
     pub message_limiter: RateLimiter,
 }
@@ -55,6 +56,7 @@ impl AppState {
         let voice_service = VoiceService::new(voice_repo, RoomRegistry::new());
         let ws_hub = WsHub::new();
 
+        let stun_url = sfu_config.stun_url.clone();
         let (sfu_tx, mut sfu_rx) = mpsc::unbounded_channel::<SfuEvent>();
         let sfu = SfuEngine::new(sfu_config, sfu_tx)?;
 
@@ -91,6 +93,7 @@ impl AppState {
             sfu,
             token_service,
             ws_hub,
+            stun_url,
             auth_limiter,
             message_limiter,
         })
