@@ -20,3 +20,15 @@
   - VPS (`PUBLIC_HOST=<VPS_IP>.sslip.io` or your domain): Caddy automatically obtains and renews a browser-trusted Let's Encrypt certificate on `:443`, so friends do not need to trust a self-signed cert.
 - **Yes** only if you run `cargo run -p rs-server` directly with `INSECURE_DEV=false` and no Caddy reverse proxy in front (generate with `./scripts/dev-cert.sh`).
 
+## End-to-End Smoke Checklist
+
+1. Open `https://localhost:8443` and register User A (automatically assigned `owner` role).
+2. Open a second browser/incognito window and register User B (assigned `member` role).
+3. Verify User A sees the **Admin** nav link and User B does not.
+4. Send messages in `#general` from both browsers; verify realtime delivery and scrollback history.
+5. Open a Direct Message between User A and User B; verify online status indicator and private realtime delivery.
+6. Join the `General` voice channel in both browsers, allow microphone access, and verify two-way Opus audio, mute/deafen, and leave controls.
+7. Run the automated test suite:
+   ```sh
+   cargo nextest run --workspace --test-threads 1 --fail-fast
+   ```

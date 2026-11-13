@@ -72,16 +72,3 @@ cargo run -p rs-server
 
 For frontend hot-reload during development, run `cd web && npm run dev` (proxies `/api` and `/ws` to `https://127.0.0.1:8443`).
 To run without TLS in local development only, pass `--insecure-dev` or set `INSECURE_DEV=true`.
-
-## End-to-End Smoke Checklist
-
-1. Open `https://localhost:8443` and register User A (automatically assigned `owner` role).
-2. Open a second browser/incognito window and register User B (assigned `member` role).
-3. Verify User A sees the **Admin** nav link and User B does not.
-4. Send messages in `#general` from both browsers; verify realtime delivery and scrollback history.
-5. Open a Direct Message between User A and User B; verify online status indicator and private realtime delivery.
-6. Join the `General` voice channel in both browsers, allow microphone access, and verify two-way Opus audio, mute/deafen, and leave controls.
-7. Run the automated test suite:
-   ```sh
-   cargo nextest run --workspace --test-threads 1 --fail-fast
-   ```

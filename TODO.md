@@ -34,3 +34,19 @@
     - user2 disconnect VC. 
     - user2 join VC again.
     - user1 have error "Failed to negotiate voice renegotiation.".
+
+
+## Scaling
+
+- [ ] new api server for:
+    - create voice server
+    - user create new server guild
+
+- [ ] user can create new server guild.
+
+- [ ] separate voice server to new server crate.
+    when user join voice channel -> 
+    if target voice server not exist -> 
+    create new voice server container (by invoke api server).
+
+- [ ] separate messages server to new server crate.
