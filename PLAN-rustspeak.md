@@ -71,12 +71,12 @@ Each lib crate: `thiserror` errors in `error.rs`; `rs-server` uses `anyhow` at b
   - [x] Admin endpoints: list users, change role (Owner only can create Admins; Owner role not transferable in phase 1), disable user
 - Done when: tests show Member is rejected from admin routes, Admin cannot promote to Owner, first-user-owner rule holds under concurrent registration.
 
-### Phase 5: TLS [STATUS: TODO]
+### Phase 5: TLS [STATUS: DONE]
 - Goal: Server serves HTTPS/WSS natively through rustls.
 - Tasks:
-  - [ ] `axum-server` (or equivalent) with rustls, cert/key paths from config
-  - [ ] `scripts/dev-cert.sh` using mkcert; document in README
-  - [ ] Refuse to start without TLS unless an explicit `--insecure-dev` flag/env is set
+  - [x] `axum-server` (or equivalent) with rustls, cert/key paths from config
+  - [x] `scripts/dev-cert.sh` using mkcert; document in README
+  - [x] Refuse to start without TLS unless an explicit `--insecure-dev` flag/env is set
 - Done when: `curl --cacert` against `https://localhost:<port>/api/health` succeeds and plain HTTP is not served.
 
 ### Phase 6: Text channels and messages (REST) [STATUS: TODO]

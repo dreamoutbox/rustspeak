@@ -19,11 +19,13 @@ rs-user = { path = "crates/rs-user" }
 anyhow = "1"
 argon2 = "0.5"
 axum = "0.8"
+axum-server = { version = "0.7", features = ["tls-rustls"] }
 base64 = "0.22"
 chrono = { version = "0.4", features = ["serde"] }
 dotenvy = "0.15"
 jsonwebtoken = "9"
 rand = "0.8"
+rustls = { version = "0.23", default-features = false, features = ["ring"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"

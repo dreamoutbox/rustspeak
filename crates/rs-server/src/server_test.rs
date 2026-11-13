@@ -266,3 +266,23 @@ async fn role_authorization_and_admin_endpoints() {
 
     db.cleanup().await.expect("cleanup test db");
 }
+
+#[test]
+fn tls_refuses_to_start_without_certs_or_insecure_flag() {
+    let cfg = rs_common::Config {
+        database_url: "postgres://localhost/test".to_string(),
+        bind_addr: "127.0.0.1:8443".parse().unwrap(),
+        jwt_secret: "0123456789abcdef0123456789abcdef".to_string(),
+        tls_cert_path: None,
+        tls_key_path: None,
+        insecure_dev: false,
+        ice_udp_port_min: 40000,
+        ice_udp_port_max: 40100,
+    };
+
+    assert!(crate::tls::resolve_serve_mode(&cfg, false).is_err());
+    assert_eq!(
+        crate::tls::resolve_serve_mode(&cfg, true).unwrap(),
+        crate::tls::ServeMode::InsecureHttp
+    );
+}
