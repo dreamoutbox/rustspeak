@@ -11,4 +11,3 @@ pub struct VoiceParticipant {
     /// Whether the participant is deafened.
     pub deafened: bool,
 }
-

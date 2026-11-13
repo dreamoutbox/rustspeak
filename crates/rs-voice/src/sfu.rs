@@ -470,10 +470,11 @@ impl SfuEngine {
         };
 
         let ssrc = rand::random::<u32>();
+        let track_instance_id = Uuid::now_v7();
         let local_track = Arc::new(TrackLocalStaticRTP::new(MediaStreamTrack::new(
-            format!("rustspeak-{publisher_id}"),
-            format!("audio-{publisher_id}-{subscriber_id}"),
-            format!("rustspeak-{publisher_id}"),
+            format!("rustspeak-{track_instance_id}"),
+            format!("audio-{publisher_id}-{subscriber_id}-{track_instance_id}"),
+            format!("stream-{track_instance_id}"),
             RtpCodecKind::Audio,
             vec![RTCRtpEncodingParameters {
                 rtp_coding_parameters: RTCRtpCodingParameters {

@@ -112,14 +112,17 @@ export const useVoiceStore = defineStore('voice', () => {
 
     if (event.type === 'voice.answer') {
       try {
+        console.debug('[voice] received voice.answer');
         await pc.setRemoteDescription({ type: 'answer', sdp: event.sdp });
         await flushPendingIce();
-      } catch {
+      } catch (err) {
+        console.error('[voice] failed to apply voice.answer:', err);
         errorMessage.value = 'Failed to apply voice answer from server.';
         connectionState.value = 'failed';
       }
     } else if (event.type === 'voice.offer') {
       try {
+        console.debug('[voice] received voice.offer (renegotiation), signalingState:', pc.signalingState);
         await pc.setRemoteDescription({ type: 'offer', sdp: event.sdp });
         await flushPendingIce();
         const answer = await pc.createAnswer();
@@ -127,7 +130,8 @@ export const useVoiceStore = defineStore('voice', () => {
         if (answer.sdp) {
           realtime.sendCommand({ type: 'voice.answer', sdp: answer.sdp });
         }
-      } catch {
+      } catch (err) {
+        console.error('[voice] failed to negotiate voice renegotiation:', err);
         errorMessage.value = 'Failed to negotiate voice renegotiation.';
         connectionState.value = 'failed';
       }
@@ -137,8 +141,8 @@ export const useVoiceStore = defineStore('voice', () => {
       } else {
         try {
           await pc.addIceCandidate(event.candidate);
-        } catch {
-          // Ignore invalid/late ICE candidates.
+        } catch (err) {
+          console.debug('[voice] ignored ICE candidate error:', err);
         }
       }
     }

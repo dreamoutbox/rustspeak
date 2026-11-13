@@ -21,7 +21,7 @@
         active-class="active"
         :to="{ name: 'dms' }"
       >
-        <span>Direct Messages</span>
+        <span>Inbox</span>
         <span v-if="chat.totalUnreadDms > 0" class="badge rounded-pill text-bg-danger">
           {{ chat.totalUnreadDms }}
         </span>

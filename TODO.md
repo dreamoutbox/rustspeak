@@ -27,9 +27,10 @@
 
 - [x] add sound for new message.
 
-- [ ] fix error "Failed to negotiate voice renegotiation.". show debug log on devtools console. repro
-- user1 join VC.
-- user2 join VC.
-- user2 disconnect VC. 
-- user2 join VC again.
-- user1 have error "Failed to negotiate voice renegotiation.".
+- [x] fix error "Failed to negotiate voice renegotiation.". show debug log on devtools console. 
+    reproduce:
+    - user1 join VC.
+    - user2 join VC.
+    - user2 disconnect VC. 
+    - user2 join VC again.
+    - user1 have error "Failed to negotiate voice renegotiation.".
