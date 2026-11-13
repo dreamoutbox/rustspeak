@@ -493,3 +493,136 @@ async fn websocket_gateway_auth_and_realtime_broadcast() {
     server_handle.abort();
     db.cleanup().await.expect("cleanup test db");
 }
+
+#[tokio::test]
+async fn direct_messages_pair_uniqueness_privacy_and_ws_delivery() {
+    let db = TestDb::new().await.expect("create test db");
+    let state = AppState::new(db.pool().clone(), TEST_SECRET);
+    let app = build_router(state);
+
+    let (alice_id, alice_tok) = register_user(&app, "dm_alice").await;
+    let (bob_id, bob_tok) = register_user(&app, "dm_bob").await;
+    let (_eve_id, eve_tok) = register_user(&app, "dm_eve").await;
+
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    let app_for_server = app.clone();
+    let server_handle = tokio::spawn(async move {
+        axum::serve(listener, app_for_server).await.unwrap();
+    });
+
+    let (mut ws_bob, _) =
+        tokio_tungstenite::connect_async(format!("ws://{addr}/ws?token={bob_tok}"))
+            .await
+            .unwrap();
+    let _ = next_ws_json(&mut ws_bob).await;
+
+    let (mut ws_eve, _) =
+        tokio_tungstenite::connect_async(format!("ws://{addr}/ws?token={eve_tok}"))
+            .await
+            .unwrap();
+    let _ = next_ws_json(&mut ws_eve).await;
+
+    // 1. Pair uniqueness: Alice opens with Bob, then Bob opens with Alice -> same conversation id.
+    let open1 = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/dms")
+                .header(header::AUTHORIZATION, format!("Bearer {alice_tok}"))
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from(json!({"peer_id": bob_id}).to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(open1.status(), StatusCode::OK);
+    let conv_id1 = json_body(open1).await["conversation"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let open2 = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/dms")
+                .header(header::AUTHORIZATION, format!("Bearer {bob_tok}"))
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from(json!({"peer_id": alice_id}).to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(open2.status(), StatusCode::OK);
+    let conv_id2 = json_body(open2).await["conversation"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    assert_eq!(conv_id1, conv_id2);
+
+    // 2. Alice sends DM to Bob.
+    let send = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/dms/{conv_id1}/messages"))
+                .header(header::AUTHORIZATION, format!("Bearer {alice_tok}"))
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from(json!({"content": "secret dm"}).to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(send.status(), StatusCode::CREATED);
+
+    // Bob receives dm_created over WS.
+    let bob_dm = next_ws_event_of_type(&mut ws_bob, "dm_created").await;
+    assert_eq!(bob_dm["message"]["content"], "secret dm");
+
+    // Eve cannot read DM history or send to it.
+    let eve_read = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(format!("/api/dms/{conv_id1}/messages"))
+                .header(header::AUTHORIZATION, format!("Bearer {eve_tok}"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(eve_read.status(), StatusCode::FORBIDDEN);
+
+    let eve_send = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/dms/{conv_id1}/messages"))
+                .header(header::AUTHORIZATION, format!("Bearer {eve_tok}"))
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from(json!({"content": "intrude"}).to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(eve_send.status(), StatusCode::FORBIDDEN);
+
+    // Eve must not receive dm_created over WS (drain any presence events, ensure no dm_created).
+    use futures_util::StreamExt;
+    let deadline = tokio::time::Instant::now() + std::time::Duration::from_millis(150);
+    while let Ok(Some(Ok(msg))) = tokio::time::timeout_at(deadline, ws_eve.next()).await {
+        if let tokio_tungstenite::tungstenite::Message::Text(text) = msg {
+            let val: Value = serde_json::from_str(&text).unwrap();
+            assert_ne!(val["type"], "dm_created", "third user received DM over WS!");
+        }
+    }
+
+    server_handle.abort();
+    db.cleanup().await.expect("cleanup test db");
+}

@@ -1,3 +1,5 @@
+mod dm_conversation;
+mod dm_message;
 mod error;
 mod message;
 mod repository;
@@ -5,6 +7,8 @@ mod service;
 mod text_channel;
 mod validation;
 
+pub use dm_conversation::DmConversation;
+pub use dm_message::DmMessage;
 pub use error::TextError;
 pub use message::Message;
 pub use repository::TextRepository;

@@ -1,4 +1,4 @@
-use rs_text::{Message, TextChannel};
+use rs_text::{DmMessage, Message, TextChannel};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -13,6 +13,8 @@ pub enum ServerEvent {
     },
     /// A new message was posted to a text channel.
     MessageCreated { message: Message },
+    /// A new 1:1 direct message was sent.
+    DmCreated { message: DmMessage },
     /// A text channel was created.
     ChannelCreated { channel: TextChannel },
     /// A text channel was deleted.

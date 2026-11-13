@@ -36,5 +36,13 @@ pub fn build_router(state: AppState) -> Router {
             "/api/channels/{id}/messages",
             get(routes::channels::get_history).post(routes::channels::post_message),
         )
+        .route(
+            "/api/dms",
+            get(routes::dms::list_dms).post(routes::dms::open_dm),
+        )
+        .route(
+            "/api/dms/{id}/messages",
+            get(routes::dms::get_dm_history).post(routes::dms::send_dm),
+        )
         .with_state(state)
 }

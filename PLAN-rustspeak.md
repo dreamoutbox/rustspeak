@@ -98,12 +98,12 @@ Each lib crate: `thiserror` errors in `error.rs`; `rs-server` uses `anyhow` at b
   - [x] Basic presence (online/offline)
 - Done when: a two-client integration test shows one client's post arriving on the other; unauthenticated WS rejected.
 
-### Phase 8: Direct messages [STATUS: TODO]
+### Phase 8: Direct messages [STATUS: DONE]
 - Goal: 1:1 persisted DMs delivered in realtime.
 - Tasks:
-  - [ ] `dm_conversations` (unique user pair) + `dm_messages` (or reuse `messages` with a conversation kind; decide in this phase)
-  - [ ] REST: open/list conversations, history, send
-  - [ ] WS delivery only to the two participants
+  - [x] `dm_conversations` (unique user pair) + `dm_messages` (or reuse `messages` with a conversation kind; decide in this phase)
+  - [x] REST: open/list conversations, history, send
+  - [x] WS delivery only to the two participants
 - Done when: tests show a third user can neither read nor receive a DM; pair uniqueness is enforced.
 
 ### Phase 9: Voice channels and signaling [STATUS: TODO]

@@ -69,7 +69,6 @@ impl WsHub {
     }
 
     /// Sends `event` to all active connections of `user_id`.
-    #[allow(dead_code)]
     pub async fn send_to_user(&self, user_id: Uuid, event: &ServerEvent) {
         let Ok(payload) = serde_json::to_string(event) else {
             tracing::error!("failed to serialize ServerEvent");
