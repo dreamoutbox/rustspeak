@@ -35,6 +35,9 @@
     - user2 join VC again.
     - user1 have error "Failed to negotiate voice renegotiation.".
 
+- [ ] play sounds when other user join/leave VC.
+
+- [ ] if message gif link (from reliable source), show gif img.
 
 ## Scaling
 
