@@ -34,13 +34,13 @@ Each lib crate: `thiserror` errors in `error.rs`; `rs-server` uses `anyhow` at b
 
 ## Phases
 
-### Phase 1: Workspace scaffold [STATUS: TODO]
+### Phase 1: Workspace scaffold [STATUS: DONE]
 - Goal: Replace the single-package `Cargo.toml` with a workspace containing the five crates, all building.
 - Tasks:
-  - [ ] Root `Cargo.toml` as workspace (edition 2024, shared `[workspace.dependencies]`)
-  - [ ] Create `rs-common`, `rs-user`, `rs-text`, `rs-voice` (lib) and `rs-server` (bin); move `src/main.rs` into `rs-server`
-  - [ ] `rs-server` main: `tracing_subscriber` with `EnvFilter`, `anyhow::Result`
-  - [ ] `.gitignore`, `rustfmt`/clippy baseline
+  - [x] Root `Cargo.toml` as workspace (edition 2024, shared `[workspace.dependencies]`)
+  - [x] Create `rs-common`, `rs-user`, `rs-text`, `rs-voice` (lib) and `rs-server` (bin); move `src/main.rs` into `rs-server`
+  - [x] `rs-server` main: `tracing_subscriber` with `EnvFilter`, `anyhow::Result`
+  - [x] `.gitignore`, `rustfmt`/clippy baseline
 - Done when: `cargo build`, `cargo clippy`, and `cargo nextest run --test-threads 1 --fail-fast` pass.
 
 ### Phase 2: Config, Postgres, migrations [STATUS: TODO]

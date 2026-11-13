@@ -1,6 +1,24 @@
-[package]
-name = "rustspeak"
+[workspace]
+resolver = "3"
+members = [
+    "crates/rs-common",
+    "crates/rs-user",
+    "crates/rs-text",
+    "crates/rs-voice",
+    "crates/rs-server",
+]
+
+[workspace.package]
 version = "0.1.0"
 edition = "2024"
 
-[dependencies]
+[workspace.dependencies]
+rs-common = { path = "crates/rs-common" }
+
+anyhow = "1"
+thiserror = "2"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[workspace.lints.clippy]
+dbg_macro = "deny"

@@ -1,0 +1,10 @@
+[package]
+name = "rs-common"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+
+[lints]
+workspace = true

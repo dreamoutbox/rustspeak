@@ -1,0 +1,11 @@
+[package]
+name = "rs-user"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+rs-common.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true
