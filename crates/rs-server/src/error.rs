@@ -1,6 +1,7 @@
 use axum::Json;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
+use rs_text::TextError;
 use rs_user::UserError;
 use serde::Serialize;
 
@@ -53,6 +54,22 @@ impl From<UserError> for ApiError {
             }
             UserError::Common(_) => {
                 tracing::error!(error = %err, "internal common error");
+                return Self::new(StatusCode::INTERNAL_SERVER_ERROR, "internal server error");
+            }
+        };
+        Self::new(status, err.to_string())
+    }
+}
+
+impl From<TextError> for ApiError {
+    fn from(err: TextError) -> Self {
+        let status = match &err {
+            TextError::InvalidInput(_) => StatusCode::BAD_REQUEST,
+            TextError::ChannelNameTaken => StatusCode::CONFLICT,
+            TextError::NotFound => StatusCode::NOT_FOUND,
+            TextError::Forbidden(_) => StatusCode::FORBIDDEN,
+            TextError::Database(_) | TextError::Common(_) => {
+                tracing::error!(error = %err, "internal text domain error");
                 return Self::new(StatusCode::INTERNAL_SERVER_ERROR, "internal server error");
             }
         };

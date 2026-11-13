@@ -5,6 +5,7 @@ edition.workspace = true
 
 [dependencies]
 rs-common.workspace = true
+rs-text.workspace = true
 rs-user.workspace = true
 
 anyhow.workspace = true

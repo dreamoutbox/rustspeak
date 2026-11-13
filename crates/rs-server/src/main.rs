@@ -37,6 +37,7 @@ async fn main() -> anyhow::Result<()> {
     run_migrations(&pool).await?;
 
     let state = AppState::new(pool, &config.jwt_secret);
+    state.text_service.seed_default_channel().await?;
     let app = build_router(state);
 
     match serve_mode {

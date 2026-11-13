@@ -22,5 +22,17 @@ pub fn build_router(state: AppState) -> Router {
             "/api/admin/users/{id}/disabled",
             patch(routes::admin::set_disabled),
         )
+        .route(
+            "/api/channels",
+            get(routes::channels::list_channels).post(routes::channels::create_channel),
+        )
+        .route(
+            "/api/channels/{id}",
+            axum::routing::delete(routes::channels::delete_channel),
+        )
+        .route(
+            "/api/channels/{id}/messages",
+            get(routes::channels::get_history).post(routes::channels::post_message),
+        )
         .with_state(state)
 }

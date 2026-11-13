@@ -286,3 +286,87 @@ fn tls_refuses_to_start_without_certs_or_insecure_flag() {
         crate::tls::ServeMode::InsecureHttp
     );
 }
+
+#[tokio::test]
+async fn text_channels_and_messages_rest_endpoints() {
+    let db = TestDb::new().await.expect("create test db");
+    let state = AppState::new(db.pool().clone(), TEST_SECRET);
+    state.text_service.seed_default_channel().await.unwrap();
+    let app = build_router(state);
+
+    let (_owner_id, owner_token) = register_user(&app, "ch_owner").await;
+    let (_member_id, member_token) = register_user(&app, "ch_member").await;
+
+    // Member cannot create channel.
+    let forbid = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/channels")
+                .header(header::AUTHORIZATION, format!("Bearer {member_token}"))
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from(json!({"name": "dev"}).to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(forbid.status(), StatusCode::FORBIDDEN);
+
+    // Owner creates #dev.
+    let created = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/channels")
+                .header(header::AUTHORIZATION, format!("Bearer {owner_token}"))
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from(
+                    json!({"name": "dev", "topic": "Engineering"}).to_string(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(created.status(), StatusCode::CREATED);
+    let ch_id = json_body(created).await["channel"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    // Member posts a message and reads history.
+    let post = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/channels/{ch_id}/messages"))
+                .header(header::AUTHORIZATION, format!("Bearer {member_token}"))
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from(json!({"content": "hello world"}).to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(post.status(), StatusCode::CREATED);
+
+    let history = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri(format!("/api/channels/{ch_id}/messages?limit=10"))
+                .header(header::AUTHORIZATION, format!("Bearer {owner_token}"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(history.status(), StatusCode::OK);
+    let hist_body = json_body(history).await;
+    assert_eq!(hist_body["messages"][0]["content"], "hello world");
+    assert_eq!(hist_body["messages"][0]["author_username"], "ch_member");
+
+    db.cleanup().await.expect("cleanup test db");
+}

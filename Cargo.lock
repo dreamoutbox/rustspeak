@@ -1371,6 +1371,7 @@ dependencies = [
  "axum-server",
  "dotenvy",
  "rs-common",
+ "rs-text",
  "rs-user",
  "rustls",
  "serde",
@@ -1387,8 +1388,14 @@ dependencies = [
 name = "rs-text"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "rs-common",
+ "rs-user",
+ "serde",
+ "sqlx",
  "thiserror",
+ "tokio",
+ "uuid",
 ]
 
 [[package]]

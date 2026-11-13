@@ -12,14 +12,13 @@ docker compose up -d
 
 ### 2. Generate Development TLS Certificates
 
-Install [mkcert](https://github.com/FiloSottile/mkcert) and run:
+Run the OpenSSL script to generate a self-signed certificate for `localhost` and `127.0.0.1`:
 
 ```sh
-mkcert -install
 ./scripts/dev-cert.sh
 ```
 
-This creates `certs/localhost.pem` and `certs/localhost-key.pem`. On WSL, ensure your Windows browser also trusts the mkcert root CA (`mkcert -CAROOT`).
+This creates `certs/localhost.pem` and `certs/localhost-key.pem`. Because it is self-signed, your browser will ask you to accept the certificate on first visit (or you can trust `certs/localhost.pem` in your OS/browser certificate store).
 
 ### 3. Run the Server
 

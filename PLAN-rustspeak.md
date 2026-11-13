@@ -79,13 +79,13 @@ Each lib crate: `thiserror` errors in `error.rs`; `rs-server` uses `anyhow` at b
   - [x] Refuse to start without TLS unless an explicit `--insecure-dev` flag/env is set
 - Done when: `curl --cacert` against `https://localhost:<port>/api/health` succeeds and plain HTTP is not served.
 
-### Phase 6: Text channels and messages (REST) [STATUS: TODO]
+### Phase 6: Text channels and messages (REST) [STATUS: DONE]
 - Goal: Admins manage text channels; members post and read persisted messages.
 - Tasks:
-  - [ ] `text_channels`, `messages` tables (ULID/UUIDv7 ids for ordering)
-  - [ ] `rs-text`: channel CRUD (Admin+), post message (length limit), history with cursor pagination
-  - [ ] REST routes under `/api/channels`
-  - [ ] Seed a default `#general` channel on first boot
+  - [x] `text_channels`, `messages` tables (ULID/UUIDv7 ids for ordering)
+  - [x] `rs-text`: channel CRUD (Admin+), post message (length limit), history with cursor pagination
+  - [x] REST routes under `/api/channels`
+  - [x] Seed a default `#general` channel on first boot
 - Done when: integration tests cover permissions, pagination order, and limits.
 
 ### Phase 7: WebSocket gateway and realtime text [STATUS: TODO]
