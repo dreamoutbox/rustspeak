@@ -7,3 +7,4 @@ pub enum VoiceError {
     #[error(transparent)]
     Common(#[from] rs_common::CommonError),
 }
+

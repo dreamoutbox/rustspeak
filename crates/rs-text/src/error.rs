@@ -7,3 +7,4 @@ pub enum TextError {
     #[error(transparent)]
     Common(#[from] rs_common::CommonError),
 }
+

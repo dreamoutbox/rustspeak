@@ -43,13 +43,13 @@ Each lib crate: `thiserror` errors in `error.rs`; `rs-server` uses `anyhow` at b
   - [x] `.gitignore`, `rustfmt`/clippy baseline
 - Done when: `cargo build`, `cargo clippy`, and `cargo nextest run --test-threads 1 --fail-fast` pass.
 
-### Phase 2: Config, Postgres, migrations [STATUS: TODO]
+### Phase 2: Config, Postgres, migrations [STATUS: DONE]
 - Goal: Server boots with typed config and a migrated Postgres 18.
 - Tasks:
-  - [ ] `docker-compose.yml` with Postgres 18 (volume at `/var/lib/postgresql`), healthcheck via a script file in `scripts/`
-  - [ ] Config struct in `rs-common` (env-driven: DB URL, bind addr, JWT secret, TLS paths, ICE UDP port range)
-  - [ ] sqlx pool + `migrations/` runner at startup
-  - [ ] Test helper to get an isolated test DB
+  - [x] `docker-compose.yml` with Postgres 18 (volume at `/var/lib/postgresql`), healthcheck via a script file in `scripts/`
+  - [x] Config struct in `rs-common` (env-driven: DB URL, bind addr, JWT secret, TLS paths, ICE UDP port range)
+  - [x] sqlx pool + `migrations/` runner at startup
+  - [x] Test helper to get an isolated test DB
 - Done when: `docker compose up -d` then server starts, migrates, and a DB-backed smoke test passes.
 
 ### Phase 3: User system – register/login [STATUS: TODO]

@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-rustspeak}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rustspeak}
+      POSTGRES_DB: ${POSTGRES_DB:-rustspeak}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - ./scripts/pg-healthcheck.sh:/scripts/pg-healthcheck.sh:ro
+    healthcheck:
+      test: ["CMD", "/scripts/pg-healthcheck.sh"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  pgdata:
+

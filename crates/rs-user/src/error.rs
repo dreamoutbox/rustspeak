@@ -7,3 +7,4 @@ pub enum UserError {
     #[error(transparent)]
     Common(#[from] rs_common::CommonError),
 }
+
