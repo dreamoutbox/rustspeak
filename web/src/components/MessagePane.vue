@@ -1,15 +1,15 @@
 <template>
   <section class="d-flex flex-column flex-grow-1 h-100 overflow-hidden min-w-0">
     <header class="border-bottom px-2 px-md-3 py-2 d-flex align-items-center justify-content-between min-w-0">
-      <div v-if="chat.activeChannel" class="text-truncate">
+      <div v-if="mode === 'channel' && chat.activeChannel" class="text-truncate">
         <span class="fw-semibold"># {{ chat.activeChannel.name }}</span>
         <span v-if="chat.activeChannel.topic" class="text-secondary small ms-2">
           {{ chat.activeChannel.topic }}
         </span>
       </div>
-      <div v-else-if="chat.activeDm" class="d-flex align-items-center gap-2 text-truncate">
+      <div v-else-if="mode === 'dm' && chat.activeDm" class="d-flex align-items-center gap-2 text-truncate">
         <span
-          class="rounded-circle d-inline-block"
+          class="rounded-circle d-inline-block flex-shrink-0"
           :class="realtime.isUserOnline(chat.activeDm.peer_id) ? 'bg-success' : 'bg-secondary'"
           style="width: 10px; height: 10px"
         ></span>
@@ -18,15 +18,18 @@
           {{ realtime.isUserOnline(chat.activeDm.peer_id) ? 'Online' : 'Offline' }}
         </span>
       </div>
-      <div v-else class="text-secondary">Select a channel or direct message</div>
+      <div v-else class="text-secondary">
+        {{ mode === 'dm' ? 'Select a direct message or member' : 'Select a channel' }}
+      </div>
     </header>
 
     <div
       ref="scrollContainer"
       class="flex-grow-1 overflow-auto p-2 p-md-3 d-flex flex-column gap-2"
+      style="min-height: 0"
       @scroll="handleScroll"
     >
-      <div v-if="chat.activeHasMore" class="text-center mb-2">
+      <div v-if="activeHasMore" class="text-center mb-2">
         <button
           type="button"
           class="btn btn-outline-secondary btn-sm"
@@ -38,21 +41,21 @@
       </div>
 
       <div
-        v-if="!chat.loadingHistory && chat.activeMessages.length === 0"
+        v-if="!chat.loadingHistory && activeMessages.length === 0"
         class="text-secondary small my-auto text-center"
       >
         No messages yet. Start the conversation below.
       </div>
 
       <div
-        v-for="msg in chat.activeMessages"
+        v-for="msg in activeMessages"
         :key="msg.id"
         class="d-flex flex-column"
-        :class="isOwnMessage(msg.author_id) ? 'align-items-start' : 'align-items-end'"
+        :class="isOwnMessage(msg.author_id) ? 'align-items-end' : 'align-items-start'"
       >
         <div
           class="d-flex align-items-baseline gap-2 px-1 mb-1 small"
-          :class="isOwnMessage(msg.author_id) ? 'flex-row' : 'flex-row-reverse'"
+          :class="isOwnMessage(msg.author_id) ? 'flex-row-reverse' : 'flex-row'"
         >
           <span class="fw-semibold">{{ msg.author_username }}</span>
           <span class="text-secondary">{{ formatTimestamp(msg.created_at) }}</span>
@@ -77,17 +80,18 @@
       </div>
       <form class="d-flex gap-2" @submit.prevent="handleSend">
         <input
+          ref="inputEl"
           v-model="draft"
           type="text"
           class="form-control"
           :placeholder="composerPlaceholder"
-          :disabled="!chat.activeTarget || sending"
+          :disabled="!activeTargetId || sending"
           maxlength="4000"
         />
         <button
           type="submit"
           class="btn btn-primary"
-          :disabled="!chat.activeTarget || sending || !draft.trim()"
+          :disabled="!activeTargetId || sending || !draft.trim()"
         >
           Send
         </button>
@@ -97,38 +101,57 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { ApiError } from '@/api/client';
 import { useAuthStore } from '@/stores/auth';
 import { useChatStore } from '@/stores/chat';
 import { useRealtimeStore } from '@/stores/realtime';
 
+const props = withDefaults(
+  defineProps<{
+    mode?: 'channel' | 'dm';
+  }>(),
+  {
+    mode: 'channel',
+  },
+);
+
 const auth = useAuthStore();
 const chat = useChatStore();
 const realtime = useRealtimeStore();
 
-function isOwnMessage(authorId: string): boolean {
-  return auth.user?.id === authorId;
-}
-
 const scrollContainer = ref<HTMLElement | null>(null);
+const inputEl = ref<HTMLInputElement | null>(null);
 const draft = ref('');
 const sending = ref(false);
 const sendError = ref('');
 
+const activeTargetId = computed(() =>
+  props.mode === 'channel' ? chat.activeChannelId : chat.activeDmId,
+);
+
+const activeMessages = computed(() => chat.getMessages(props.mode));
+const activeHasMore = computed(() => chat.hasMore(props.mode));
+
 const composerPlaceholder = computed(() => {
-  if (chat.activeChannel) {
+  if (props.mode === 'channel' && chat.activeChannel) {
     return `Message #${chat.activeChannel.name}`;
   }
-  if (chat.activeDm) {
+  if (props.mode === 'dm' && chat.activeDm) {
     return `Message @${chat.activeDm.peer_username}`;
   }
   return 'Select a conversation';
 });
 
+function isOwnMessage(authorId: string): boolean {
+  return auth.user?.id === authorId;
+}
+
 function formatTimestamp(iso: string): string {
   const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? '' : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return Number.isNaN(date.getTime())
+    ? ''
+    : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
 function isNearBottom(el: HTMLElement): boolean {
@@ -141,10 +164,14 @@ function scrollToBottom(): void {
   }
 }
 
+function focusComposer(): void {
+  inputEl.value?.focus();
+}
+
 async function loadOlderPreservingScroll(): Promise<void> {
   const el = scrollContainer.value;
   const previousHeight = el?.scrollHeight ?? 0;
-  await chat.loadOlderMessages();
+  await chat.loadOlderMessages(props.mode);
   await nextTick();
   if (el) {
     el.scrollTop = el.scrollHeight - previousHeight;
@@ -156,21 +183,25 @@ function handleScroll(): void {
   if (!el) {
     return;
   }
-  if (el.scrollTop <= 24 && chat.activeHasMore && !chat.loadingHistory) {
+  if (el.scrollTop <= 24 && activeHasMore.value && !chat.loadingHistory) {
     void loadOlderPreservingScroll();
   }
 }
 
-watch(
-  () => chat.activeTarget,
-  async () => {
-    await nextTick();
-    scrollToBottom();
-  },
-);
+onMounted(async () => {
+  await nextTick();
+  scrollToBottom();
+  focusComposer();
+});
+
+watch(activeTargetId, async () => {
+  await nextTick();
+  scrollToBottom();
+  focusComposer();
+});
 
 watch(
-  () => chat.activeMessages.length,
+  () => activeMessages.value.length,
   async (nextLen, prevLen) => {
     const el = scrollContainer.value;
     if (!el || nextLen <= prevLen) {
@@ -192,10 +223,11 @@ async function handleSend(): Promise<void> {
   sendError.value = '';
   sending.value = true;
   try {
-    await chat.sendMessage(text);
+    await chat.sendMessage(props.mode, text);
     draft.value = '';
     await nextTick();
     scrollToBottom();
+    focusComposer();
   } catch (err) {
     sendError.value = err instanceof ApiError ? err.message : 'Failed to send message.';
   } finally {
@@ -209,4 +241,3 @@ async function handleSend(): Promise<void> {
   max-width: min(85%, 640px);
 }
 </style>
-

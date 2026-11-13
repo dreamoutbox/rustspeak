@@ -3,6 +3,7 @@ import { defineStore } from 'pinia';
 import { apiFetch } from '@/api/client';
 import { useRealtimeStore } from '@/stores/realtime';
 import type { ServerEvent, VoiceChannel, VoiceParticipant } from '@/types/api';
+import { SoundEffect, playSound } from '@/utils/sound';
 
 const SPEAKING_RMS_THRESHOLD = 0.02;
 const SPEAKING_POLL_MS = 80;
@@ -292,6 +293,7 @@ export const useVoiceStore = defineStore('voice', () => {
       muted: muted.value,
       deafened: deafened.value,
     });
+    playSound(SoundEffect.VoiceJoin);
 
     try {
       const offer = await peer.createOffer();
@@ -308,6 +310,7 @@ export const useVoiceStore = defineStore('voice', () => {
   async function leaveVoice(): Promise<void> {
     if (activeVoiceChannelId.value) {
       realtime.sendCommand({ type: 'voice.leave' });
+      playSound(SoundEffect.VoiceLeave);
     }
     activeVoiceChannelId.value = null;
     cleanupPeer();

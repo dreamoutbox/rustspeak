@@ -4,10 +4,10 @@
       v-if="showSidebarToggle"
       type="button"
       class="btn btn-outline-secondary btn-sm d-md-none"
-      aria-label="Toggle channels"
+      aria-label="Toggle sidebar"
       @click="emit('toggle-sidebar')"
     >
-      Channels
+      {{ sidebarLabel }}
     </button>
     <RouterLink class="navbar-brand fw-semibold me-2" :to="{ name: 'app' }">
       RustSpeak
@@ -15,6 +15,16 @@
     <div class="navbar-nav me-auto">
       <RouterLink class="nav-link" active-class="active" :to="{ name: 'app' }">
         Chat
+      </RouterLink>
+      <RouterLink
+        class="nav-link d-flex align-items-center gap-1"
+        active-class="active"
+        :to="{ name: 'dms' }"
+      >
+        <span>Direct Messages</span>
+        <span v-if="chat.totalUnreadDms > 0" class="badge rounded-pill text-bg-danger">
+          {{ chat.totalUnreadDms }}
+        </span>
       </RouterLink>
       <RouterLink
         v-if="auth.isAdmin"
@@ -40,13 +50,16 @@
 <script setup lang="ts">
 import { RouterLink, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import { useChatStore } from '@/stores/chat';
 
 withDefaults(
   defineProps<{
     showSidebarToggle?: boolean;
+    sidebarLabel?: string;
   }>(),
   {
     showSidebarToggle: false,
+    sidebarLabel: 'Channels',
   },
 );
 
@@ -55,6 +68,7 @@ const emit = defineEmits<{
 }>();
 
 const auth = useAuthStore();
+const chat = useChatStore();
 const router = useRouter();
 
 async function handleLogout(): Promise<void> {

@@ -1,12 +1,12 @@
 <template>
-  <div class="vh-100 d-flex flex-column overflow-hidden">
-    <AppNavbar :show-sidebar-toggle="true" @toggle-sidebar="sidebarOpen = !sidebarOpen" />
+  <div class="d-flex flex-column overflow-hidden app-shell">
+    <AppNavbar
+      :show-sidebar-toggle="true"
+      sidebar-label="Channels"
+      @toggle-sidebar="sidebarOpen = !sidebarOpen"
+    />
 
-    <div v-if="loadError" class="alert alert-danger m-2 m-md-3 mb-0 py-2 small">
-      {{ loadError }}
-    </div>
-
-    <div class="d-flex flex-grow-1 overflow-hidden position-relative">
+    <div class="d-flex flex-grow-1 overflow-hidden position-relative min-h-0">
       <div
         v-if="sidebarOpen"
         class="d-md-none position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50"
@@ -14,40 +14,27 @@
         @click="sidebarOpen = false"
       ></div>
       <ChannelSidebar :mobile-open="sidebarOpen" @close="sidebarOpen = false" />
-      <MessagePane />
+      <MessagePane mode="channel" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue';
-import { ApiError } from '@/api/client';
+import { ref } from 'vue';
 import AppNavbar from '@/components/AppNavbar.vue';
 import ChannelSidebar from '@/components/ChannelSidebar.vue';
 import MessagePane from '@/components/MessagePane.vue';
-import { useChatStore } from '@/stores/chat';
-import { useRealtimeStore } from '@/stores/realtime';
-import { useVoiceStore } from '@/stores/voice';
 
-const chat = useChatStore();
-const realtime = useRealtimeStore();
-const voice = useVoiceStore();
-const loadError = ref('');
 const sidebarOpen = ref(false);
-
-onMounted(async () => {
-  realtime.connect();
-  try {
-    await Promise.all([chat.loadInitialData(), voice.loadVoiceChannels()]);
-  } catch (err) {
-    loadError.value = err instanceof ApiError ? err.message : 'Failed to load workspace data.';
-  }
-});
-
-onUnmounted(() => {
-  void voice.leaveVoice();
-  voice.reset();
-  realtime.disconnect();
-  chat.reset();
-});
 </script>
+
+<style scoped>
+.app-shell {
+  height: 100vh;
+  height: 100dvh;
+}
+
+.min-h-0 {
+  min-height: 0;
+}
+</style>

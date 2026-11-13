@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import AdminView from '@/views/AdminView.vue';
 import AppShellView from '@/views/AppShellView.vue';
+import DmView from '@/views/DmView.vue';
 import LoginView from '@/views/LoginView.vue';
 import RegisterView from '@/views/RegisterView.vue';
 
@@ -24,6 +25,12 @@ export const router = createRouter({
       path: '/',
       name: 'app',
       component: AppShellView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/dms',
+      name: 'dms',
+      component: DmView,
       meta: { requiresAuth: true },
     },
     {
@@ -53,4 +60,3 @@ router.beforeEach(async (to) => {
 
   return true;
 });
-

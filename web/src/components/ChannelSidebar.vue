@@ -28,9 +28,7 @@
           :key="ch.id"
           type="button"
           class="list-group-item list-group-item-action border-0 rounded px-2 py-1 text-start"
-          :class="{
-            active: chat.activeTarget?.kind === 'channel' && chat.activeTarget.id === ch.id,
-          }"
+          :class="{ active: chat.activeChannelId === ch.id }"
           @click="handleSelectChannel(ch.id)"
         >
           # {{ ch.name }}
@@ -72,18 +70,15 @@
               </span>
               <span class="d-flex align-items-center gap-1 flex-shrink-0">
                 <span
-                  class="badge"
-                  :class="p.muted || p.deafened ? 'text-bg-danger' : 'text-bg-success'"
                   :title="p.muted || p.deafened ? 'Microphone muted' : 'Microphone active'"
                 >
-                  {{ p.muted || p.deafened ? 'Mic Off' : 'Mic' }}
+                  {{ p.muted || p.deafened ? '' : '🎙️' }}
                 </span>
                 <span
                   v-if="p.deafened"
-                  class="badge text-bg-warning"
                   title="Deafened"
                 >
-                  Deaf
+                  🔇
                 </span>
               </span>
             </div>
@@ -91,51 +86,6 @@
         </div>
       </div>
 
-      <div class="text-uppercase text-secondary fw-semibold small mb-2">Direct Messages</div>
-      <div class="list-group list-group-flush mb-4">
-        <button
-          v-for="dm in chat.dms"
-          :key="dm.id"
-          type="button"
-          class="list-group-item list-group-item-action border-0 rounded px-2 py-1 d-flex align-items-center gap-2 text-start"
-          :class="{
-            active: chat.activeTarget?.kind === 'dm' && chat.activeTarget.id === dm.id,
-          }"
-          @click="handleSelectDm(dm.id)"
-        >
-          <span
-            class="rounded-circle d-inline-block flex-shrink-0"
-            :class="realtime.isUserOnline(dm.peer_id) ? 'bg-success' : 'bg-secondary'"
-            style="width: 8px; height: 8px"
-          ></span>
-          <span class="text-truncate">@ {{ dm.peer_username }}</span>
-        </button>
-        <div v-if="chat.dms.length === 0" class="text-secondary small px-2">
-          No conversations yet
-        </div>
-      </div>
-
-      <div class="text-uppercase text-secondary fw-semibold small mb-2">Members</div>
-      <div class="list-group list-group-flush">
-        <button
-          v-for="member in otherMembers"
-          :key="member.id"
-          type="button"
-          class="list-group-item list-group-item-action border-0 rounded px-2 py-1 d-flex align-items-center justify-content-between text-start"
-          title="Open direct message"
-          @click="handleOpenDm(member.id)"
-        >
-          <span class="d-flex align-items-center gap-2 text-truncate">
-            <span
-              class="rounded-circle d-inline-block flex-shrink-0"
-              :class="realtime.isUserOnline(member.id) ? 'bg-success' : 'bg-secondary'"
-              style="width: 8px; height: 8px"
-            ></span>
-            <span class="text-truncate">{{ member.username }}</span>
-          </span>
-          <span class="small text-secondary">DM</span>
-        </button>
-      </div>
     </div>
 
     <div v-if="voice.errorMessage" class="alert alert-danger m-2 mb-0 py-1 px-2 small">
@@ -201,7 +151,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
 import RemoteAudio from '@/components/RemoteAudio.vue';
 import { useAuthStore } from '@/stores/auth';
 import { useChatStore } from '@/stores/chat';
@@ -226,10 +175,6 @@ const chat = useChatStore();
 const realtime = useRealtimeStore();
 const voice = useVoiceStore();
 
-const otherMembers = computed(() =>
-  chat.directoryUsers.filter((u) => u.id !== auth.user?.id),
-);
-
 function resolveUsername(userId: string): string {
   if (auth.user?.id === userId) {
     return auth.user.username;
@@ -239,16 +184,6 @@ function resolveUsername(userId: string): string {
 
 async function handleSelectChannel(id: string): Promise<void> {
   await chat.selectChannel(id);
-  emit('close');
-}
-
-async function handleSelectDm(id: string): Promise<void> {
-  await chat.selectDm(id);
-  emit('close');
-}
-
-async function handleOpenDm(peerId: string): Promise<void> {
-  await chat.openDmWithUser(peerId);
   emit('close');
 }
 </script>

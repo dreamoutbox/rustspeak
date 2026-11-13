@@ -33,4 +33,3 @@ echo "Starting RustSpeak stack on https://${VPS_IP}.sslip.io ..."
 SKIP_BUILD=1 ./setup.sh
 
 echo "Done. Open https://${VPS_IP}.sslip.io"
-
