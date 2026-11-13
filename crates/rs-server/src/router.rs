@@ -3,11 +3,13 @@ use axum::routing::{get, patch, post};
 
 use crate::routes;
 use crate::state::AppState;
+use crate::ws;
 
 /// Builds the application Axum `Router` with all API routes.
 pub fn build_router(state: AppState) -> Router {
     Router::new()
         .route("/api/health", get(routes::health::health))
+        .route("/ws", get(ws::handler::ws_handler))
         .route("/api/auth/register", post(routes::auth::register))
         .route("/api/auth/login", post(routes::auth::login))
         .route("/api/auth/refresh", post(routes::auth::refresh))

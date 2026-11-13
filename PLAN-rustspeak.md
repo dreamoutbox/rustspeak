@@ -88,14 +88,14 @@ Each lib crate: `thiserror` errors in `error.rs`; `rs-server` uses `anyhow` at b
   - [x] Seed a default `#general` channel on first boot
 - Done when: integration tests cover permissions, pagination order, and limits.
 
-### Phase 7: WebSocket gateway and realtime text [STATUS: TODO]
+### Phase 7: WebSocket gateway and realtime text [STATUS: DONE]
 - Goal: Connected clients receive new messages live.
 - Tasks:
-  - [ ] `/ws` endpoint authenticating via access token (query/first message; never log it)
-  - [ ] Connection registry + broadcast hub in `rs-server` (typed event enum, serde JSON)
-  - [ ] Publish `message.created` and channel create/delete events
-  - [ ] Heartbeat/ping, reconnect-friendly (client resumes via REST history)
-  - [ ] Basic presence (online/offline)
+  - [x] `/ws` endpoint authenticating via access token (query/first message; never log it)
+  - [x] Connection registry + broadcast hub in `rs-server` (typed event enum, serde JSON)
+  - [x] Publish `message.created` and channel create/delete events
+  - [x] Heartbeat/ping, reconnect-friendly (client resumes via REST history)
+  - [x] Basic presence (online/offline)
 - Done when: a two-client integration test shows one client's post arriving on the other; unauthenticated WS rejected.
 
 ### Phase 8: Direct messages [STATUS: TODO]

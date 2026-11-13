@@ -370,3 +370,126 @@ async fn text_channels_and_messages_rest_endpoints() {
 
     db.cleanup().await.expect("cleanup test db");
 }
+
+async fn next_ws_json(
+    stream: &mut tokio_tungstenite::WebSocketStream<
+        tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>,
+    >,
+) -> Value {
+    use futures_util::StreamExt;
+    loop {
+        let msg = tokio::time::timeout(std::time::Duration::from_secs(5), stream.next())
+            .await
+            .expect("ws timeout")
+            .expect("ws stream ended")
+            .expect("ws error");
+        if let tokio_tungstenite::tungstenite::Message::Text(text) = msg {
+            return serde_json::from_str(&text).expect("valid ws json");
+        }
+    }
+}
+
+async fn next_ws_event_of_type(
+    stream: &mut tokio_tungstenite::WebSocketStream<
+        tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>,
+    >,
+    expected_type: &str,
+) -> Value {
+    for _ in 0..10 {
+        let val = next_ws_json(stream).await;
+        if val["type"] == expected_type {
+            return val;
+        }
+    }
+    panic!("did not receive ws event of type {expected_type}");
+}
+
+#[tokio::test]
+async fn websocket_gateway_auth_and_realtime_broadcast() {
+    use futures_util::SinkExt;
+
+    let db = TestDb::new().await.expect("create test db");
+    let state = AppState::new(db.pool().clone(), TEST_SECRET);
+    state.text_service.seed_default_channel().await.unwrap();
+    let app = build_router(state);
+
+    let (_u1, tok1) = register_user(&app, "ws_alice").await;
+    let (_u2, tok2) = register_user(&app, "ws_bob").await;
+
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    let app_for_server = app.clone();
+    let server_handle = tokio::spawn(async move {
+        axum::serve(listener, app_for_server).await.unwrap();
+    });
+
+    // 1. Unauthenticated WS connection is rejected.
+    let unauth = tokio_tungstenite::connect_async(format!("ws://{addr}/ws")).await;
+    assert!(unauth.is_err());
+
+    // 2. Connect client 1 and client 2.
+    let (mut ws1, _) = tokio_tungstenite::connect_async(format!("ws://{addr}/ws?token={tok1}"))
+        .await
+        .expect("ws1 connect");
+    let ready1 = next_ws_json(&mut ws1).await;
+    assert_eq!(ready1["type"], "ready");
+
+    let (mut ws2, _) = tokio_tungstenite::connect_async(format!("ws://{addr}/ws?token={tok2}"))
+        .await
+        .expect("ws2 connect");
+    let ready2 = next_ws_json(&mut ws2).await;
+    assert_eq!(ready2["type"], "ready");
+
+    // Client 1 sees client 2 come online.
+    let presence = next_ws_event_of_type(&mut ws1, "presence_updated").await;
+    assert_eq!(presence["online"], true);
+
+    // Client 1 sends application-level ping -> receives pong.
+    ws1.send(tokio_tungstenite::tungstenite::Message::Text(
+        json!({"type": "ping"}).to_string().into(),
+    ))
+    .await
+    .unwrap();
+    let pong = next_ws_event_of_type(&mut ws1, "pong").await;
+    assert_eq!(pong["type"], "pong");
+
+    // 3. Post a message as ws_alice via REST and verify ws_bob receives message_created.
+    let ch_res = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/channels")
+                .header(header::AUTHORIZATION, format!("Bearer {tok1}"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let ch_id = json_body(ch_res).await["channels"][0]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+
+    let post_res = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(format!("/api/channels/{ch_id}/messages"))
+                .header(header::AUTHORIZATION, format!("Bearer {tok1}"))
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from(json!({"content": "hi bob!"}).to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(post_res.status(), StatusCode::CREATED);
+
+    let event2 = next_ws_event_of_type(&mut ws2, "message_created").await;
+    assert_eq!(event2["message"]["content"], "hi bob!");
+    assert_eq!(event2["message"]["author_username"], "ws_alice");
+
+    server_handle.abort();
+    db.cleanup().await.expect("cleanup test db");
+}

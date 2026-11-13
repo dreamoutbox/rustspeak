@@ -8,6 +8,7 @@ use uuid::Uuid;
 use crate::auth_extractor::{AuthUser, RequireAdmin};
 use crate::error::ApiError;
 use crate::state::AppState;
+use crate::ws::event::ServerEvent;
 
 #[derive(Serialize)]
 pub struct ChannelsResponse {
@@ -66,6 +67,12 @@ pub async fn create_channel(
         .text_service
         .create_channel(claims.role, &payload.name, &payload.topic)
         .await?;
+    state
+        .ws_hub
+        .broadcast(&ServerEvent::ChannelCreated {
+            channel: channel.clone(),
+        })
+        .await;
     Ok((StatusCode::CREATED, Json(ChannelResponse { channel })))
 }
 
@@ -79,6 +86,10 @@ pub async fn delete_channel(
         .text_service
         .delete_channel(claims.role, channel_id)
         .await?;
+    state
+        .ws_hub
+        .broadcast(&ServerEvent::ChannelDeleted { channel_id })
+        .await;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -107,5 +118,11 @@ pub async fn post_message(
         .text_service
         .post_message(channel_id, claims.sub, &payload.content)
         .await?;
+    state
+        .ws_hub
+        .broadcast(&ServerEvent::MessageCreated {
+            message: message.clone(),
+        })
+        .await;
     Ok((StatusCode::CREATED, Json(MessageResponse { message })))
 }

@@ -4,6 +4,7 @@ mod router;
 mod routes;
 mod state;
 mod tls;
+mod ws;
 
 #[cfg(test)]
 mod server_test;
