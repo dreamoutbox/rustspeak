@@ -85,7 +85,7 @@
           type="text"
           class="form-control"
           :placeholder="composerPlaceholder"
-          :disabled="!activeTargetId || sending"
+          :disabled="!activeTargetId"
           maxlength="4000"
         />
         <button
@@ -216,6 +216,9 @@ watch(
 );
 
 async function handleSend(): Promise<void> {
+  if (sending.value) {
+    return;
+  }
   const text = draft.value.trim();
   if (!text) {
     return;
@@ -227,11 +230,12 @@ async function handleSend(): Promise<void> {
     draft.value = '';
     await nextTick();
     scrollToBottom();
-    focusComposer();
   } catch (err) {
     sendError.value = err instanceof ApiError ? err.message : 'Failed to send message.';
   } finally {
     sending.value = false;
+    await nextTick();
+    focusComposer();
   }
 }
 </script>
