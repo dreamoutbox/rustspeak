@@ -1,13 +1,13 @@
 <template>
-  <section class="d-flex flex-column flex-grow-1 h-100 overflow-hidden">
-    <header class="border-bottom px-3 py-2 d-flex align-items-center justify-content-between">
-      <div v-if="chat.activeChannel">
+  <section class="d-flex flex-column flex-grow-1 h-100 overflow-hidden min-w-0">
+    <header class="border-bottom px-2 px-md-3 py-2 d-flex align-items-center justify-content-between min-w-0">
+      <div v-if="chat.activeChannel" class="text-truncate">
         <span class="fw-semibold"># {{ chat.activeChannel.name }}</span>
         <span v-if="chat.activeChannel.topic" class="text-secondary small ms-2">
           {{ chat.activeChannel.topic }}
         </span>
       </div>
-      <div v-else-if="chat.activeDm" class="d-flex align-items-center gap-2">
+      <div v-else-if="chat.activeDm" class="d-flex align-items-center gap-2 text-truncate">
         <span
           class="rounded-circle d-inline-block"
           :class="realtime.isUserOnline(chat.activeDm.peer_id) ? 'bg-success' : 'bg-secondary'"
@@ -23,7 +23,7 @@
 
     <div
       ref="scrollContainer"
-      class="flex-grow-1 overflow-auto p-3 d-flex flex-column gap-2"
+      class="flex-grow-1 overflow-auto p-2 p-md-3 d-flex flex-column gap-2"
       @scroll="handleScroll"
     >
       <div v-if="chat.activeHasMore" class="text-center mb-2">
@@ -47,17 +47,31 @@
       <div
         v-for="msg in chat.activeMessages"
         :key="msg.id"
-        class="px-2 py-1 rounded hover-bg"
+        class="d-flex flex-column"
+        :class="isOwnMessage(msg.author_id) ? 'align-items-start' : 'align-items-end'"
       >
-        <div class="d-flex align-items-baseline gap-2">
+        <div
+          class="d-flex align-items-baseline gap-2 px-1 mb-1 small"
+          :class="isOwnMessage(msg.author_id) ? 'flex-row' : 'flex-row-reverse'"
+        >
           <span class="fw-semibold">{{ msg.author_username }}</span>
-          <span class="text-secondary small">{{ formatTimestamp(msg.created_at) }}</span>
+          <span class="text-secondary">{{ formatTimestamp(msg.created_at) }}</span>
         </div>
-        <div class="text-break" style="white-space: pre-wrap">{{ msg.content }}</div>
+        <div
+          class="rounded-3 px-3 py-2 text-break chat-bubble"
+          :class="
+            isOwnMessage(msg.author_id)
+              ? 'bg-primary text-white'
+              : 'bg-body-secondary border'
+          "
+          style="white-space: pre-wrap"
+        >
+          {{ msg.content }}
+        </div>
       </div>
     </div>
 
-    <footer class="border-top p-3">
+    <footer class="border-top p-2 p-md-3">
       <div v-if="sendError" class="alert alert-danger py-1 px-2 small mb-2">
         {{ sendError }}
       </div>
@@ -85,11 +99,17 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
 import { ApiError } from '@/api/client';
+import { useAuthStore } from '@/stores/auth';
 import { useChatStore } from '@/stores/chat';
 import { useRealtimeStore } from '@/stores/realtime';
 
+const auth = useAuthStore();
 const chat = useChatStore();
 const realtime = useRealtimeStore();
+
+function isOwnMessage(authorId: string): boolean {
+  return auth.user?.id === authorId;
+}
 
 const scrollContainer = ref<HTMLElement | null>(null);
 const draft = ref('');
@@ -183,4 +203,10 @@ async function handleSend(): Promise<void> {
   }
 }
 </script>
+
+<style scoped>
+.chat-bubble {
+  max-width: min(85%, 640px);
+}
+</style>
 

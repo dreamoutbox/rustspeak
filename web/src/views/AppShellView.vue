@@ -1,13 +1,19 @@
 <template>
   <div class="vh-100 d-flex flex-column overflow-hidden">
-    <AppNavbar />
+    <AppNavbar :show-sidebar-toggle="true" @toggle-sidebar="sidebarOpen = !sidebarOpen" />
 
-    <div v-if="loadError" class="alert alert-danger m-3 mb-0 py-2 small">
+    <div v-if="loadError" class="alert alert-danger m-2 m-md-3 mb-0 py-2 small">
       {{ loadError }}
     </div>
 
-    <div class="d-flex flex-grow-1 overflow-hidden">
-      <ChannelSidebar />
+    <div class="d-flex flex-grow-1 overflow-hidden position-relative">
+      <div
+        v-if="sidebarOpen"
+        class="d-md-none position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50"
+        style="z-index: 1040"
+        @click="sidebarOpen = false"
+      ></div>
+      <ChannelSidebar :mobile-open="sidebarOpen" @close="sidebarOpen = false" />
       <MessagePane />
     </div>
   </div>
@@ -27,6 +33,7 @@ const chat = useChatStore();
 const realtime = useRealtimeStore();
 const voice = useVoiceStore();
 const loadError = ref('');
+const sidebarOpen = ref(false);
 
 onMounted(async () => {
   realtime.connect();

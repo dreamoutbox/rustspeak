@@ -13,4 +13,8 @@
     - voice channel 1 and 2
     - mock dm messages between user1 -> user2, user1 -> user3
 
-- [ ] show mic and deafen status of users in Voice Channels.
+- [x] show mic and deafen status of users in Voice Channels.
+
+- [x] responsive ui in mobile.
+
+- [x] bubble chat message. other on right, us on left.

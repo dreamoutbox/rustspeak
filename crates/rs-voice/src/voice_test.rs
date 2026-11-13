@@ -25,7 +25,7 @@ use webrtc::peer_connection::{
 };
 use webrtc::runtime::default_runtime;
 
-use crate::{RoomRegistry, SfuConfig, SfuEngine, SfuEvent};
+use crate::{RoomRegistry, SfuConfig, SfuEngine, SfuEvent, VoiceParticipant};
 
 #[tokio::test]
 async fn room_registry_enforces_one_room_per_user() {
@@ -33,14 +33,32 @@ async fn room_registry_enforces_one_room_per_user() {
     let user = Uuid::now_v7();
     let room_a = Uuid::now_v7();
     let room_b = Uuid::now_v7();
+    let expected_default = VoiceParticipant {
+        user_id: user,
+        muted: false,
+        deafened: false,
+    };
 
     let join_a = registry.join(user, room_a).await;
     assert_eq!(join_a.left_channel, None);
-    assert_eq!(join_a.joined_channel, (room_a, vec![user]));
+    assert_eq!(join_a.joined_channel, (room_a, vec![expected_default]));
+
+    let updated = registry.set_state(user, true, true).await;
+    assert_eq!(
+        updated,
+        Some((
+            room_a,
+            vec![VoiceParticipant {
+                user_id: user,
+                muted: true,
+                deafened: true,
+            }]
+        ))
+    );
 
     let join_b = registry.join(user, room_b).await;
     assert_eq!(join_b.left_channel, Some((room_a, Vec::new())));
-    assert_eq!(join_b.joined_channel, (room_b, vec![user]));
+    assert_eq!(join_b.joined_channel, (room_b, vec![expected_default]));
 
     let left = registry.leave(user).await;
     assert_eq!(left, Some((room_b, Vec::new())));

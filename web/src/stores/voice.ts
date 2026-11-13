@@ -2,7 +2,7 @@ import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
 import { apiFetch } from '@/api/client';
 import { useRealtimeStore } from '@/stores/realtime';
-import type { ServerEvent, VoiceChannel } from '@/types/api';
+import type { ServerEvent, VoiceChannel, VoiceParticipant } from '@/types/api';
 
 const SPEAKING_RMS_THRESHOLD = 0.02;
 const SPEAKING_POLL_MS = 80;
@@ -10,7 +10,7 @@ const SPEAKING_POLL_MS = 80;
 export const useVoiceStore = defineStore('voice', () => {
   const voiceChannels = ref<VoiceChannel[]>([]);
   const iceServers = ref<RTCIceServer[]>([]);
-  const participantsByChannel = ref<Record<string, string[]>>({});
+  const participantsByChannel = ref<Record<string, VoiceParticipant[]>>({});
   const activeVoiceChannelId = ref<string | null>(null);
   const connectionState = ref<'idle' | 'connecting' | 'connected' | 'failed'>('idle');
   const muted = ref(false);
@@ -95,9 +95,12 @@ export const useVoiceStore = defineStore('voice', () => {
 
   async function handleServerEvent(event: ServerEvent): Promise<void> {
     if (event.type === 'voice.participants') {
+      const list: VoiceParticipant[] =
+        event.participants ??
+        event.user_ids.map((user_id) => ({ user_id, muted: false, deafened: false }));
       participantsByChannel.value = {
         ...participantsByChannel.value,
-        [event.channel_id]: event.user_ids,
+        [event.channel_id]: list,
       };
       return;
     }
@@ -157,6 +160,13 @@ export const useVoiceStore = defineStore('voice', () => {
       apiFetch<{ ice_servers: RTCIceServer[] }>('/api/voice/config'),
     ]);
     voiceChannels.value = channelsRes.channels;
+    const initialParticipants: Record<string, VoiceParticipant[]> = {};
+    for (const ch of channelsRes.channels) {
+      if (ch.participants) {
+        initialParticipants[ch.id] = ch.participants;
+      }
+    }
+    participantsByChannel.value = initialParticipants;
     iceServers.value = configRes.ice_servers;
   }
 
@@ -276,7 +286,12 @@ export const useVoiceStore = defineStore('voice', () => {
       }
     };
 
-    realtime.sendCommand({ type: 'voice.join', channel_id: channelId });
+    realtime.sendCommand({
+      type: 'voice.join',
+      channel_id: channelId,
+      muted: muted.value,
+      deafened: deafened.value,
+    });
 
     try {
       const offer = await peer.createOffer();
@@ -311,14 +326,26 @@ export const useVoiceStore = defineStore('voice', () => {
     }
   }
 
+  function syncVoiceState(): void {
+    if (activeVoiceChannelId.value) {
+      realtime.sendCommand({
+        type: 'voice.state',
+        muted: muted.value,
+        deafened: deafened.value,
+      });
+    }
+  }
+
   function toggleMute(): void {
     muted.value = !muted.value;
     applyTrackMuteState();
+    syncVoiceState();
   }
 
   function toggleDeafen(): void {
     deafened.value = !deafened.value;
     applyTrackMuteState();
+    syncVoiceState();
   }
 
   function reset(): void {

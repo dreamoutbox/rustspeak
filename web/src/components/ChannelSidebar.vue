@@ -1,14 +1,25 @@
 <template>
-  <aside class="border-end bg-body-tertiary d-flex flex-column h-100" style="width: 260px; min-width: 220px">
+  <aside
+    class="border-end bg-body-tertiary flex-column h-100 sidebar-panel"
+    :class="mobileOpen ? 'd-flex sidebar-mobile-open' : 'd-none d-md-flex'"
+  >
     <div class="p-3 overflow-auto flex-grow-1">
       <div class="d-flex align-items-center justify-content-between mb-2">
         <span class="text-uppercase text-secondary fw-semibold small">Text Channels</span>
-        <span
-          class="badge rounded-pill"
-          :class="realtime.isConnected ? 'text-bg-success' : 'text-bg-warning'"
-        >
-          {{ realtime.status }}
-        </span>
+        <div class="d-flex align-items-center gap-2">
+          <span
+            class="badge rounded-pill"
+            :class="realtime.isConnected ? 'text-bg-success' : 'text-bg-warning'"
+          >
+            {{ realtime.status }}
+          </span>
+          <button
+            type="button"
+            class="btn-close d-md-none"
+            aria-label="Close sidebar"
+            @click="emit('close')"
+          ></button>
+        </div>
       </div>
 
       <div class="list-group list-group-flush mb-4">
@@ -20,7 +31,7 @@
           :class="{
             active: chat.activeTarget?.kind === 'channel' && chat.activeTarget.id === ch.id,
           }"
-          @click="chat.selectChannel(ch.id)"
+          @click="handleSelectChannel(ch.id)"
         >
           # {{ ch.name }}
         </button>
@@ -45,18 +56,36 @@
             class="ps-3 pt-1 d-flex flex-column gap-1"
           >
             <div
-              v-for="uid in voice.participantsByChannel[vc.id]"
-              :key="uid"
-              class="small d-flex align-items-center gap-2 text-secondary"
+              v-for="p in voice.participantsByChannel[vc.id]"
+              :key="p.user_id"
+              class="small d-flex align-items-center justify-content-between gap-2 text-secondary"
             >
-              <span
-                class="rounded-circle d-inline-block flex-shrink-0"
-                :class="
-                  uid === auth.user?.id && voice.isSpeaking ? 'bg-success' : 'bg-secondary'
-                "
-                style="width: 7px; height: 7px"
-              ></span>
-              <span class="text-truncate">{{ resolveUsername(uid) }}</span>
+              <span class="d-flex align-items-center gap-2 text-truncate">
+                <span
+                  class="rounded-circle d-inline-block flex-shrink-0"
+                  :class="
+                    p.user_id === auth.user?.id && voice.isSpeaking ? 'bg-success' : 'bg-secondary'
+                  "
+                  style="width: 7px; height: 7px"
+                ></span>
+                <span class="text-truncate">{{ resolveUsername(p.user_id) }}</span>
+              </span>
+              <span class="d-flex align-items-center gap-1 flex-shrink-0">
+                <span
+                  class="badge"
+                  :class="p.muted || p.deafened ? 'text-bg-danger' : 'text-bg-success'"
+                  :title="p.muted || p.deafened ? 'Microphone muted' : 'Microphone active'"
+                >
+                  {{ p.muted || p.deafened ? 'Mic Off' : 'Mic' }}
+                </span>
+                <span
+                  v-if="p.deafened"
+                  class="badge text-bg-warning"
+                  title="Deafened"
+                >
+                  Deaf
+                </span>
+              </span>
             </div>
           </div>
         </div>
@@ -72,7 +101,7 @@
           :class="{
             active: chat.activeTarget?.kind === 'dm' && chat.activeTarget.id === dm.id,
           }"
-          @click="chat.selectDm(dm.id)"
+          @click="handleSelectDm(dm.id)"
         >
           <span
             class="rounded-circle d-inline-block flex-shrink-0"
@@ -94,7 +123,7 @@
           type="button"
           class="list-group-item list-group-item-action border-0 rounded px-2 py-1 d-flex align-items-center justify-content-between text-start"
           title="Open direct message"
-          @click="chat.openDmWithUser(member.id)"
+          @click="handleOpenDm(member.id)"
         >
           <span class="d-flex align-items-center gap-2 text-truncate">
             <span
@@ -179,6 +208,19 @@ import { useChatStore } from '@/stores/chat';
 import { useRealtimeStore } from '@/stores/realtime';
 import { useVoiceStore } from '@/stores/voice';
 
+withDefaults(
+  defineProps<{
+    mobileOpen?: boolean;
+  }>(),
+  {
+    mobileOpen: false,
+  },
+);
+
+const emit = defineEmits<{
+  close: [];
+}>();
+
 const auth = useAuthStore();
 const chat = useChatStore();
 const realtime = useRealtimeStore();
@@ -194,5 +236,39 @@ function resolveUsername(userId: string): string {
   }
   return chat.directoryUsers.find((u) => u.id === userId)?.username ?? userId.slice(0, 8);
 }
+
+async function handleSelectChannel(id: string): Promise<void> {
+  await chat.selectChannel(id);
+  emit('close');
+}
+
+async function handleSelectDm(id: string): Promise<void> {
+  await chat.selectDm(id);
+  emit('close');
+}
+
+async function handleOpenDm(peerId: string): Promise<void> {
+  await chat.openDmWithUser(peerId);
+  emit('close');
+}
 </script>
+
+<style scoped>
+.sidebar-panel {
+  width: 260px;
+  min-width: 240px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 767.98px) {
+  .sidebar-mobile-open {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: min(85vw, 300px);
+    z-index: 1045;
+  }
+}
+</style>
 

@@ -3,7 +3,9 @@ use std::collections::HashMap;
 use rs_common::Role;
 use uuid::Uuid;
 
-use crate::{JoinOutcome, RoomRegistry, VoiceChannel, VoiceError, VoiceRepository};
+use crate::{
+    JoinOutcome, RoomRegistry, VoiceChannel, VoiceError, VoiceParticipant, VoiceRepository,
+};
 
 const MIN_NAME_LEN: usize = 1;
 const MAX_NAME_LEN: usize = 32;
@@ -70,14 +72,39 @@ impl VoiceService {
         user_id: Uuid,
         channel_id: Uuid,
     ) -> Result<JoinOutcome, VoiceError> {
+        self.join_room_with_state(user_id, channel_id, false, false)
+            .await
+    }
+
+    /// Joins `user_id` to `channel_id` with initial `muted` and `deafened` state.
+    pub async fn join_room_with_state(
+        &self,
+        user_id: Uuid,
+        channel_id: Uuid,
+        muted: bool,
+        deafened: bool,
+    ) -> Result<JoinOutcome, VoiceError> {
         if !self.repo.channel_exists(channel_id).await? {
             return Err(VoiceError::NotFound);
         }
-        Ok(self.rooms.join(user_id, channel_id).await)
+        Ok(self
+            .rooms
+            .join_with_state(user_id, channel_id, muted, deafened)
+            .await)
+    }
+
+    /// Updates `user_id`'s `muted` and `deafened` state in their current voice room, if any.
+    pub async fn set_voice_state(
+        &self,
+        user_id: Uuid,
+        muted: bool,
+        deafened: bool,
+    ) -> Option<(Uuid, Vec<VoiceParticipant>)> {
+        self.rooms.set_state(user_id, muted, deafened).await
     }
 
     /// Removes `user_id` from their current voice room, if any.
-    pub async fn leave_room(&self, user_id: Uuid) -> Option<(Uuid, Vec<Uuid>)> {
+    pub async fn leave_room(&self, user_id: Uuid) -> Option<(Uuid, Vec<VoiceParticipant>)> {
         self.rooms.leave(user_id).await
     }
 
@@ -87,7 +114,7 @@ impl VoiceService {
     }
 
     /// Returns a snapshot of participants per voice channel.
-    pub async fn room_snapshot(&self) -> HashMap<Uuid, Vec<Uuid>> {
+    pub async fn room_snapshot(&self) -> HashMap<Uuid, Vec<VoiceParticipant>> {
         self.rooms.snapshot().await
     }
 }

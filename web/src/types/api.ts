@@ -55,10 +55,17 @@ export interface DmMessage {
   created_at: string;
 }
 
+export interface VoiceParticipant {
+  user_id: string;
+  muted: boolean;
+  deafened: boolean;
+}
+
 export interface VoiceChannel {
   id: string;
   name: string;
   created_at: string;
+  participants?: VoiceParticipant[];
 }
 
 export type ServerEvent =
@@ -68,7 +75,12 @@ export type ServerEvent =
   | { type: 'channel_created'; channel: TextChannel }
   | { type: 'channel_deleted'; channel_id: string }
   | { type: 'presence_updated'; user_id: string; online: boolean }
-  | { type: 'voice.participants'; channel_id: string; user_ids: string[] }
+  | {
+      type: 'voice.participants';
+      channel_id: string;
+      user_ids: string[];
+      participants?: VoiceParticipant[];
+    }
   | { type: 'voice.offer'; sdp: string }
   | { type: 'voice.answer'; sdp: string }
   | { type: 'voice.ice'; candidate: RTCIceCandidateInit }
@@ -76,7 +88,8 @@ export type ServerEvent =
 
 export type ClientCommand =
   | { type: 'ping' }
-  | { type: 'voice.join'; channel_id: string }
+  | { type: 'voice.join'; channel_id: string; muted?: boolean; deafened?: boolean }
+  | { type: 'voice.state'; muted: boolean; deafened: boolean }
   | { type: 'voice.leave' }
   | { type: 'voice.offer'; sdp: string }
   | { type: 'voice.answer'; sdp: string }

@@ -1,7 +1,7 @@
 use axum::Json;
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
-use rs_voice::VoiceChannel;
+use rs_voice::{VoiceChannel, VoiceParticipant};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -14,6 +14,7 @@ pub struct VoiceChannelWithParticipants {
     #[serde(flatten)]
     pub channel: VoiceChannel,
     pub participant_ids: Vec<Uuid>,
+    pub participants: Vec<VoiceParticipant>,
 }
 
 #[derive(Serialize)]
@@ -65,10 +66,12 @@ pub async fn list_channels(
     let items = channels
         .into_iter()
         .map(|channel| {
-            let participant_ids = snapshot.remove(&channel.id).unwrap_or_default();
+            let participants = snapshot.remove(&channel.id).unwrap_or_default();
+            let participant_ids = participants.iter().map(|p| p.user_id).collect();
             VoiceChannelWithParticipants {
                 channel,
                 participant_ids,
+                participants,
             }
         })
         .collect();

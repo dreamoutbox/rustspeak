@@ -6,6 +6,7 @@ mod sfu;
 mod sfu_config;
 mod sfu_event;
 mod voice_channel;
+mod voice_participant;
 
 pub use error::VoiceError;
 pub use repository::VoiceRepository;
@@ -15,6 +16,7 @@ pub use sfu::SfuEngine;
 pub use sfu_config::SfuConfig;
 pub use sfu_event::SfuEvent;
 pub use voice_channel::VoiceChannel;
+pub use voice_participant::VoiceParticipant;
 
 #[cfg(test)]
 mod voice_test;

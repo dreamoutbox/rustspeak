@@ -1,4 +1,5 @@
 use rs_text::{DmMessage, Message, TextChannel};
+use rs_voice::VoiceParticipant;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -26,6 +27,7 @@ pub enum ServerEvent {
     VoiceParticipants {
         channel_id: Uuid,
         user_ids: Vec<Uuid>,
+        participants: Vec<VoiceParticipant>,
     },
     /// WebRTC SDP offer from the SFU to the client.
     #[serde(rename = "voice.offer")]
@@ -48,7 +50,16 @@ pub enum ClientCommand {
     Ping,
     /// Join a voice channel.
     #[serde(rename = "voice.join")]
-    VoiceJoin { channel_id: Uuid },
+    VoiceJoin {
+        channel_id: Uuid,
+        #[serde(default)]
+        muted: bool,
+        #[serde(default)]
+        deafened: bool,
+    },
+    /// Update current voice mute/deafen state.
+    #[serde(rename = "voice.state")]
+    VoiceState { muted: bool, deafened: bool },
     /// Leave the current voice channel.
     #[serde(rename = "voice.leave")]
     VoiceLeave,

@@ -118,14 +118,8 @@ async fn handle_socket(socket: WebSocket, state: AppState, user_id: uuid::Uuid) 
 
     write_task.abort();
     state.sfu.remove_peer(user_id).await;
-    if let Some((channel_id, user_ids)) = state.voice_service.leave_room(user_id).await {
-        state
-            .ws_hub
-            .broadcast(&ServerEvent::VoiceParticipants {
-                channel_id,
-                user_ids,
-            })
-            .await;
+    if let Some((channel_id, participants)) = state.voice_service.leave_room(user_id).await {
+        broadcast_voice_participants(&state, channel_id, participants).await;
     }
     let became_offline = state.ws_hub.unregister(user_id, conn_id).await;
     if became_offline {
@@ -151,43 +145,43 @@ async fn handle_client_command(
                 let _ = ping_tx.send(Message::Text(pong.into()));
             }
         }
-        ClientCommand::VoiceJoin { channel_id } => {
-            match state.voice_service.join_room(user_id, channel_id).await {
+        ClientCommand::VoiceJoin {
+            channel_id,
+            muted,
+            deafened,
+        } => {
+            match state
+                .voice_service
+                .join_room_with_state(user_id, channel_id, muted, deafened)
+                .await
+            {
                 Ok(outcome) => {
-                    if let Some((left_id, left_users)) = outcome.left_channel {
+                    if let Some((left_id, left_participants)) = outcome.left_channel {
                         state.sfu.remove_peer(user_id).await;
-                        state
-                            .ws_hub
-                            .broadcast(&ServerEvent::VoiceParticipants {
-                                channel_id: left_id,
-                                user_ids: left_users,
-                            })
-                            .await;
+                        broadcast_voice_participants(state, left_id, left_participants).await;
                     }
-                    let (joined_id, joined_users) = outcome.joined_channel;
-                    state
-                        .ws_hub
-                        .broadcast(&ServerEvent::VoiceParticipants {
-                            channel_id: joined_id,
-                            user_ids: joined_users,
-                        })
-                        .await;
+                    let (joined_id, joined_participants) = outcome.joined_channel;
+                    broadcast_voice_participants(state, joined_id, joined_participants).await;
                 }
                 Err(err) => {
                     tracing::debug!(?user_id, %channel_id, error = %err, "voice.join rejected");
                 }
             }
         }
+        ClientCommand::VoiceState { muted, deafened } => {
+            if let Some((channel_id, participants)) = state
+                .voice_service
+                .set_voice_state(user_id, muted, deafened)
+                .await
+            {
+                broadcast_voice_participants(state, channel_id, participants).await;
+            }
+        }
         ClientCommand::VoiceLeave => {
             state.sfu.remove_peer(user_id).await;
-            if let Some((channel_id, user_ids)) = state.voice_service.leave_room(user_id).await {
-                state
-                    .ws_hub
-                    .broadcast(&ServerEvent::VoiceParticipants {
-                        channel_id,
-                        user_ids,
-                    })
-                    .await;
+            if let Some((channel_id, participants)) = state.voice_service.leave_room(user_id).await
+            {
+                broadcast_voice_participants(state, channel_id, participants).await;
             }
         }
         ClientCommand::VoiceOffer { sdp } => {
@@ -208,4 +202,20 @@ async fn handle_client_command(
             }
         }
     }
+}
+
+async fn broadcast_voice_participants(
+    state: &AppState,
+    channel_id: uuid::Uuid,
+    participants: Vec<rs_voice::VoiceParticipant>,
+) {
+    let user_ids = participants.iter().map(|p| p.user_id).collect();
+    state
+        .ws_hub
+        .broadcast(&ServerEvent::VoiceParticipants {
+            channel_id,
+            user_ids,
+            participants,
+        })
+        .await;
 }
