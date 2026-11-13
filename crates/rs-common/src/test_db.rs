@@ -75,4 +75,3 @@ fn replace_database_name(url: &str, db_name: &str) -> Result<String, CommonError
     }
     Ok(result)
 }
-

@@ -52,14 +52,14 @@ Each lib crate: `thiserror` errors in `error.rs`; `rs-server` uses `anyhow` at b
   - [x] Test helper to get an isolated test DB
 - Done when: `docker compose up -d` then server starts, migrates, and a DB-backed smoke test passes.
 
-### Phase 3: User system – register/login [STATUS: TODO]
+### Phase 3: User system – register/login [STATUS: DONE]
 - Goal: Users can register and log in, receiving JWT access + refresh tokens.
 - Tasks:
-  - [ ] `users` and `refresh_tokens` tables
-  - [ ] `rs-user`: Argon2 hashing, username/password validation, repository, service
-  - [ ] Access JWT (short TTL), refresh token rotation with revocation (store hashed)
-  - [ ] REST: `POST /api/auth/register`, `/login`, `/refresh`, `/logout`, `GET /api/users/me`
-  - [ ] Auth extractor in axum (validates access JWT)
+  - [x] `users` and `refresh_tokens` tables
+  - [x] `rs-user`: Argon2 hashing, username/password validation, repository, service
+  - [x] Access JWT (short TTL), refresh token rotation with revocation (store hashed)
+  - [x] REST: `POST /api/auth/register`, `/login`, `/refresh`, `/logout`, `GET /api/users/me`
+  - [x] Auth extractor in axum (validates access JWT)
 - Done when: unit + integration tests cover register, duplicate user, bad password, refresh rotation, reuse of a revoked refresh token being rejected.
 
 ### Phase 4: Roles and authorization [STATUS: TODO]

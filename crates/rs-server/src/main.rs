@@ -1,5 +1,18 @@
+mod auth_extractor;
+mod error;
+mod router;
+mod routes;
+mod state;
+
+#[cfg(test)]
+mod server_test;
+
 use rs_common::{Config, connect_pool, run_migrations};
+use tokio::net::TcpListener;
 use tracing_subscriber::EnvFilter;
+
+use crate::router::build_router;
+use crate::state::AppState;
 
 /// Entry point for the rustspeak server binary.
 #[tokio::main]
@@ -14,12 +27,12 @@ async fn main() -> anyhow::Result<()> {
     let pool = connect_pool(&config.database_url).await?;
     run_migrations(&pool).await?;
 
-    let row: (i32,) = sqlx::query_as("SELECT 1").fetch_one(&pool).await?;
-    tracing::info!(
-        bind_addr = %config.bind_addr,
-        db_check = row.0,
-        "rustspeak server database migrated and ready"
-    );
+    let state = AppState::new(pool, &config.jwt_secret);
+    let app = build_router(state);
+
+    let listener = TcpListener::bind(config.bind_addr).await?;
+    tracing::info!(bind_addr = %config.bind_addr, "rustspeak server listening");
+    axum::serve(listener, app).await?;
 
     Ok(())
 }
