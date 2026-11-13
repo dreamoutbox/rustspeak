@@ -21,21 +21,25 @@ import ChannelSidebar from '@/components/ChannelSidebar.vue';
 import MessagePane from '@/components/MessagePane.vue';
 import { useChatStore } from '@/stores/chat';
 import { useRealtimeStore } from '@/stores/realtime';
+import { useVoiceStore } from '@/stores/voice';
 
 const chat = useChatStore();
 const realtime = useRealtimeStore();
+const voice = useVoiceStore();
 const loadError = ref('');
 
 onMounted(async () => {
   realtime.connect();
   try {
-    await chat.loadInitialData();
+    await Promise.all([chat.loadInitialData(), voice.loadVoiceChannels()]);
   } catch (err) {
     loadError.value = err instanceof ApiError ? err.message : 'Failed to load workspace data.';
   }
 });
 
 onUnmounted(() => {
+  void voice.leaveVoice();
+  voice.reset();
   realtime.disconnect();
   chat.reset();
 });

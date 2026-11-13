@@ -143,13 +143,13 @@ Each lib crate: `thiserror` errors in `error.rs`; `rs-server` uses `anyhow` at b
   - [x] Admin panel: manage channels and user roles
 - Done when: two browsers chat in a channel and by DM in real time.
 
-### Phase 13: Frontend voice UI [STATUS: TODO]
+### Phase 13: Frontend voice UI [STATUS: DONE]
 - Goal: Join a voice channel from the browser and talk.
 - Tasks:
-  - [ ] Voice channel list with participants
-  - [ ] `getUserMedia`, RTCPeerConnection, signaling via WS, audio playback elements
-  - [ ] Mute/deafen, leave, speaking indicator (client-side level detection)
-  - [ ] Clear error states (mic denied, ICE failed)
+  - [x] Voice channel list with participants
+  - [x] `getUserMedia`, RTCPeerConnection, signaling via WS, audio playback elements
+  - [x] Mute/deafen, leave, speaking indicator (client-side level detection)
+  - [x] Clear error states (mic denied, ICE failed)
 - Done when: two browsers hear each other over the local SFU via HTTPS.
 
 ### Phase 14: Hardening and docs [STATUS: TODO]
