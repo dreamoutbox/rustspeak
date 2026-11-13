@@ -17,6 +17,29 @@ services:
       retries: 10
       start_period: 10s
 
+  app:
+    profiles: ["full"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-rustspeak}:${POSTGRES_PASSWORD:-rustspeak}@postgres:5432/${POSTGRES_DB:-rustspeak}
+      BIND_ADDR: 0.0.0.0:8443
+      JWT_SECRET: ${JWT_SECRET:-change-me-to-a-random-32-byte-secret-value}
+      TLS_CERT_PATH: /certs/localhost.pem
+      TLS_KEY_PATH: /certs/localhost-key.pem
+      STATIC_DIR: /app/web/dist
+      ICE_BIND_IP: ${ICE_BIND_IP:-0.0.0.0}
+      ICE_UDP_PORT_MIN: ${ICE_UDP_PORT_MIN:-40000}
+      ICE_UDP_PORT_MAX: ${ICE_UDP_PORT_MAX:-40100}
+    ports:
+      - "8443:8443/tcp"
+      - "40000-40100:40000-40100/udp"
+    volumes:
+      - ./certs:/certs:ro
+
 volumes:
   pgdata:
-

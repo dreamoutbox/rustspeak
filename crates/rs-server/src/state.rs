@@ -1,11 +1,18 @@
+use std::time::Duration;
+
 use rs_text::{TextRepository, TextService};
 use rs_user::{TokenService, UserRepository, UserService};
 use rs_voice::{RoomRegistry, SfuConfig, SfuEngine, SfuEvent, VoiceRepository, VoiceService};
 use sqlx::PgPool;
 use tokio::sync::mpsc;
 
+use crate::rate_limit::RateLimiter;
 use crate::ws::event::ServerEvent;
 use crate::ws::hub::WsHub;
+
+const AUTH_RATE_LIMIT_MAX: u32 = 30;
+const MESSAGE_RATE_LIMIT_MAX: u32 = 60;
+const RATE_LIMIT_WINDOW: Duration = Duration::from_secs(60);
 
 /// Shared application state injected into Axum handlers and extractors.
 #[derive(Clone)]
@@ -16,6 +23,8 @@ pub struct AppState {
     pub sfu: SfuEngine,
     pub token_service: TokenService,
     pub ws_hub: WsHub,
+    pub auth_limiter: RateLimiter,
+    pub message_limiter: RateLimiter,
 }
 
 impl AppState {
@@ -72,6 +81,9 @@ impl AppState {
             }
         });
 
+        let auth_limiter = RateLimiter::new(AUTH_RATE_LIMIT_MAX, RATE_LIMIT_WINDOW);
+        let message_limiter = RateLimiter::new(MESSAGE_RATE_LIMIT_MAX, RATE_LIMIT_WINDOW);
+
         Ok(Self {
             user_service,
             text_service,
@@ -79,6 +91,8 @@ impl AppState {
             sfu,
             token_service,
             ws_hub,
+            auth_limiter,
+            message_limiter,
         })
     }
 }

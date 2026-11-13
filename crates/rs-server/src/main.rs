@@ -1,5 +1,6 @@
 mod auth_extractor;
 mod error;
+mod rate_limit;
 mod router;
 mod routes;
 mod state;
@@ -8,6 +9,8 @@ mod ws;
 
 #[cfg(test)]
 mod server_test;
+
+use std::net::SocketAddr;
 
 use axum_server::tls_rustls::RustlsConfig;
 use rs_common::{Config, connect_pool, run_migrations};
@@ -55,7 +58,7 @@ async fn main() -> anyhow::Result<()> {
                 "rustspeak server listening with TLS"
             );
             axum_server::bind_rustls(config.bind_addr, tls_config)
-                .serve(app.into_make_service())
+                .serve(app.into_make_service_with_connect_info::<SocketAddr>())
                 .await?;
         }
         ServeMode::InsecureHttp => {
@@ -64,7 +67,11 @@ async fn main() -> anyhow::Result<()> {
                 "running in insecure HTTP mode without TLS"
             );
             let listener = TcpListener::bind(config.bind_addr).await?;
-            axum::serve(listener, app).await?;
+            axum::serve(
+                listener,
+                app.into_make_service_with_connect_info::<SocketAddr>(),
+            )
+            .await?;
         }
     }
 

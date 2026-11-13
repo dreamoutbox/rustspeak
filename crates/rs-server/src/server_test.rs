@@ -732,3 +732,65 @@ async fn direct_messages_pair_uniqueness_privacy_and_ws_delivery() {
     server_handle.abort();
     db.cleanup().await.expect("cleanup test db");
 }
+
+#[tokio::test]
+async fn security_headers_and_auth_rate_limit_work() {
+    let db = TestDb::new().await.expect("create test db");
+    let mut state = AppState::new(db.pool().clone(), TEST_SECRET);
+    state.auth_limiter = crate::rate_limit::RateLimiter::new(2, std::time::Duration::from_secs(60));
+    let app = build_router(state);
+
+    let health = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/health")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(health.status(), StatusCode::OK);
+    assert_eq!(
+        health.headers().get("x-content-type-options").unwrap(),
+        "nosniff"
+    );
+    assert_eq!(health.headers().get("x-frame-options").unwrap(), "DENY");
+    assert!(health.headers().get("content-security-policy").is_some());
+
+    for _ in 0..2 {
+        let resp = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/auth/login")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(
+                        json!({"username": "nobody", "password": "wrongpassword"}).to_string(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    let limited = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/auth/login")
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from(
+                    json!({"username": "nobody", "password": "wrongpassword"}).to_string(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(limited.status(), StatusCode::TOO_MANY_REQUESTS);
+
+    db.cleanup().await.expect("cleanup test db");
+}

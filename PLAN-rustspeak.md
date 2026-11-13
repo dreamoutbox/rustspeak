@@ -152,14 +152,14 @@ Each lib crate: `thiserror` errors in `error.rs`; `rs-server` uses `anyhow` at b
   - [x] Clear error states (mic denied, ICE failed)
 - Done when: two browsers hear each other over the local SFU via HTTPS.
 
-### Phase 14: Hardening and docs [STATUS: TODO]
+### Phase 14: Hardening and docs [STATUS: DONE]
 - Goal: Phase-1 release candidate.
 - Tasks:
-  - [ ] Rate limiting on auth and message endpoints
-  - [ ] Input validation/size limits, CORS/CSP/security headers
-  - [ ] Dockerfile + compose profile for the full stack (no inline scripts; entrypoints in `scripts/`)
-  - [ ] README: setup, certs, ports (TCP 443/UDP range), architecture diagram
-  - [ ] End-to-end smoke checklist
+  - [x] Rate limiting on auth and message endpoints
+  - [x] Input validation/size limits, CORS/CSP/security headers
+  - [x] Dockerfile + compose profile for the full stack (no inline scripts; entrypoints in `scripts/`)
+  - [x] README: setup, certs, ports (TCP 443/UDP range), architecture diagram
+  - [x] End-to-end smoke checklist
 - Done when: fresh clone to a running app follows the README; full test suite is green.
 
 ## Unknowns, risks, assumptions
