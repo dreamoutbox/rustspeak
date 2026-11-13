@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use crate::CommonError;
 
 const DEFAULT_BIND_ADDR: &str = "127.0.0.1:8443";
+const DEFAULT_ICE_BIND_IP: &str = "127.0.0.1";
 const DEFAULT_ICE_UDP_PORT_MIN: u16 = 40000;
 const DEFAULT_ICE_UDP_PORT_MAX: u16 = 40100;
 const MIN_JWT_SECRET_LEN: usize = 32;
@@ -23,6 +24,10 @@ pub struct Config {
     pub tls_key_path: Option<PathBuf>,
     /// Explicit opt-in to run without TLS in local development (`INSECURE_DEV`).
     pub insecure_dev: bool,
+    /// IP address to bind WebRTC ICE UDP sockets (`ICE_BIND_IP`).
+    pub ice_bind_ip: String,
+    /// Optional STUN server URL for WebRTC ICE (`STUN_URL`).
+    pub stun_url: Option<String>,
     /// Inclusive lower bound of the UDP port range for WebRTC ICE (`ICE_UDP_PORT_MIN`).
     pub ice_udp_port_min: u16,
     /// Inclusive upper bound of the UDP port range for WebRTC ICE (`ICE_UDP_PORT_MAX`).
@@ -65,6 +70,14 @@ impl Config {
         let tls_key_path = non_empty_path(&get, "TLS_KEY_PATH");
         let insecure_dev = parse_bool_env(&get, "INSECURE_DEV", false)?;
 
+        let ice_bind_ip = get("ICE_BIND_IP")
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .unwrap_or_else(|| DEFAULT_ICE_BIND_IP.to_string());
+        let stun_url = get("STUN_URL")
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty());
+
         let ice_udp_port_min = parse_u16_env(&get, "ICE_UDP_PORT_MIN", DEFAULT_ICE_UDP_PORT_MIN)?;
         let ice_udp_port_max = parse_u16_env(&get, "ICE_UDP_PORT_MAX", DEFAULT_ICE_UDP_PORT_MAX)?;
 
@@ -81,6 +94,8 @@ impl Config {
             tls_cert_path,
             tls_key_path,
             insecure_dev,
+            ice_bind_ip,
+            stun_url,
             ice_udp_port_min,
             ice_udp_port_max,
         })

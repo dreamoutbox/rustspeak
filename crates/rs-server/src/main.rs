@@ -11,6 +11,7 @@ mod server_test;
 
 use axum_server::tls_rustls::RustlsConfig;
 use rs_common::{Config, connect_pool, run_migrations};
+use rs_voice::SfuConfig;
 use tokio::net::TcpListener;
 use tracing_subscriber::EnvFilter;
 
@@ -37,7 +38,7 @@ async fn main() -> anyhow::Result<()> {
     let pool = connect_pool(&config.database_url).await?;
     run_migrations(&pool).await?;
 
-    let state = AppState::new(pool, &config.jwt_secret);
+    let state = AppState::with_sfu_config(pool, &config.jwt_secret, SfuConfig::from(&config))?;
     state.text_service.seed_default_channel().await?;
     state.voice_service.seed_default_channel().await?;
     let app = build_router(state);

@@ -115,14 +115,14 @@ Each lib crate: `thiserror` errors in `error.rs`; `rs-server` uses `anyhow` at b
   - [x] Cleanup on WS disconnect
 - Done when: tests verify join/leave/disconnect membership events and the one-room rule.
 
-### Phase 10: SFU audio relay [STATUS: TODO]
+### Phase 10: SFU audio relay [STATUS: DONE]
 - Goal: Audio from one participant is forwarded to others in the same voice channel.
 - Tasks:
-  - [ ] `webrtc` crate: one `RTCPeerConnection` per participant, Opus audio only
-  - [ ] Receive track from publisher, fan out via local tracks to subscribers (excluding self)
-  - [ ] Renegotiation when participants join/leave
-  - [ ] ICE config: fixed UDP port range from config, optional STUN; document firewall/NAT needs
-  - [ ] Server-side tests with two `webrtc` test clients exchanging RTP
+  - [x] `webrtc` crate: one `RTCPeerConnection` per participant, Opus audio only
+  - [x] Receive track from publisher, fan out via local tracks to subscribers (excluding self)
+  - [x] Renegotiation when participants join/leave
+  - [x] ICE config: fixed UDP port range from config, optional STUN; document firewall/NAT needs
+  - [x] Server-side tests with two `webrtc` test clients exchanging RTP
 - Done when: automated test sees RTP from client A at client B and not echoed to A; manual two-browser check passes (Phase 14).
 
 ### Phase 11: Frontend scaffold and auth UI [STATUS: TODO]

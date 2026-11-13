@@ -117,6 +117,7 @@ async fn handle_socket(socket: WebSocket, state: AppState, user_id: uuid::Uuid) 
     }
 
     write_task.abort();
+    state.sfu.remove_peer(user_id).await;
     if let Some((channel_id, user_ids)) = state.voice_service.leave_room(user_id).await {
         state
             .ws_hub
@@ -154,6 +155,7 @@ async fn handle_client_command(
             match state.voice_service.join_room(user_id, channel_id).await {
                 Ok(outcome) => {
                     if let Some((left_id, left_users)) = outcome.left_channel {
+                        state.sfu.remove_peer(user_id).await;
                         state
                             .ws_hub
                             .broadcast(&ServerEvent::VoiceParticipants {
@@ -177,6 +179,7 @@ async fn handle_client_command(
             }
         }
         ClientCommand::VoiceLeave => {
+            state.sfu.remove_peer(user_id).await;
             if let Some((channel_id, user_ids)) = state.voice_service.leave_room(user_id).await {
                 state
                     .ws_hub
@@ -187,10 +190,22 @@ async fn handle_client_command(
                     .await;
             }
         }
-        ClientCommand::VoiceOffer { .. }
-        | ClientCommand::VoiceAnswer { .. }
-        | ClientCommand::VoiceIce { .. } => {
-            // Media negotiation via SFU is wired in Phase 10.
+        ClientCommand::VoiceOffer { sdp } => {
+            if let Some(channel_id) = state.voice_service.current_room(user_id).await
+                && let Err(err) = state.sfu.handle_offer(user_id, channel_id, sdp).await
+            {
+                tracing::warn!(?user_id, error = %err, "sfu handle_offer failed");
+            }
+        }
+        ClientCommand::VoiceAnswer { sdp } => {
+            if let Err(err) = state.sfu.handle_answer(user_id, sdp).await {
+                tracing::warn!(?user_id, error = %err, "sfu handle_answer failed");
+            }
+        }
+        ClientCommand::VoiceIce { candidate } => {
+            if let Err(err) = state.sfu.handle_ice(user_id, candidate).await {
+                tracing::warn!(?user_id, error = %err, "sfu handle_ice failed");
+            }
         }
     }
 }

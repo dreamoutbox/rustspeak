@@ -276,6 +276,8 @@ fn tls_refuses_to_start_without_certs_or_insecure_flag() {
         tls_cert_path: None,
         tls_key_path: None,
         insecure_dev: false,
+        ice_bind_ip: "127.0.0.1".to_string(),
+        stun_url: None,
         ice_udp_port_min: 40000,
         ice_udp_port_max: 40100,
     };

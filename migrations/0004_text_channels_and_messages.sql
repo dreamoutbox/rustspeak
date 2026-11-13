@@ -16,3 +16,4 @@ CREATE TABLE messages (
 );
 
 CREATE INDEX messages_channel_id_idx ON messages (channel_id, id DESC);
+

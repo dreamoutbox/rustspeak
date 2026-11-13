@@ -69,7 +69,7 @@ impl From<VoiceError> for ApiError {
             VoiceError::ChannelNameTaken => StatusCode::CONFLICT,
             VoiceError::NotFound => StatusCode::NOT_FOUND,
             VoiceError::Forbidden(_) => StatusCode::FORBIDDEN,
-            VoiceError::Database(_) | VoiceError::Common(_) => {
+            VoiceError::WebRtc(_) | VoiceError::Database(_) | VoiceError::Common(_) => {
                 tracing::error!(error = %err, "internal voice domain error");
                 return Self::new(StatusCode::INTERNAL_SERVER_ERROR, "internal server error");
             }

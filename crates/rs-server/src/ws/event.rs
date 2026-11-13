@@ -54,20 +54,11 @@ pub enum ClientCommand {
     VoiceLeave,
     /// Client SDP offer for WebRTC negotiation.
     #[serde(rename = "voice.offer")]
-    VoiceOffer {
-        #[allow(dead_code)]
-        sdp: String,
-    },
+    VoiceOffer { sdp: String },
     /// Client SDP answer for WebRTC renegotiation.
     #[serde(rename = "voice.answer")]
-    VoiceAnswer {
-        #[allow(dead_code)]
-        sdp: String,
-    },
+    VoiceAnswer { sdp: String },
     /// Client ICE candidate.
     #[serde(rename = "voice.ice")]
-    VoiceIce {
-        #[allow(dead_code)]
-        candidate: serde_json::Value,
-    },
+    VoiceIce { candidate: serde_json::Value },
 }

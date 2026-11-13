@@ -19,6 +19,10 @@ pub enum VoiceError {
     #[error("forbidden: {0}")]
     Forbidden(String),
 
+    /// WebRTC / SFU operation failed.
+    #[error("webrtc error: {0}")]
+    WebRtc(String),
+
     /// Database query failure.
     #[error("database error: {0}")]
     Database(#[from] sqlx::Error),

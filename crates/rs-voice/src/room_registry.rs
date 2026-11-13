@@ -76,6 +76,12 @@ impl RoomRegistry {
         Some((channel_id, remaining))
     }
 
+    /// Returns the `channel_id` that `user_id` is currently in, if any.
+    pub async fn current_room(&self, user_id: Uuid) -> Option<Uuid> {
+        let guard = self.state.read().await;
+        guard.user_room.get(&user_id).copied()
+    }
+
     /// Returns a snapshot of all non-empty rooms and their participant IDs.
     pub async fn snapshot(&self) -> HashMap<Uuid, Vec<Uuid>> {
         let guard = self.state.read().await;

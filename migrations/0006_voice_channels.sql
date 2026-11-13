@@ -5,3 +5,4 @@ CREATE TABLE voice_channels (
 );
 
 CREATE UNIQUE INDEX voice_channels_name_lower_idx ON voice_channels (LOWER(name));
+

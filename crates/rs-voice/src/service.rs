@@ -81,6 +81,11 @@ impl VoiceService {
         self.rooms.leave(user_id).await
     }
 
+    /// Returns the `channel_id` that `user_id` is currently in, if any.
+    pub async fn current_room(&self, user_id: Uuid) -> Option<Uuid> {
+        self.rooms.current_room(user_id).await
+    }
+
     /// Returns a snapshot of participants per voice channel.
     pub async fn room_snapshot(&self) -> HashMap<Uuid, Vec<Uuid>> {
         self.rooms.snapshot().await

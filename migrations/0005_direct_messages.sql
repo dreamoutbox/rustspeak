@@ -19,3 +19,4 @@ CREATE TABLE dm_messages (
 );
 
 CREATE INDEX dm_messages_conv_id_idx ON dm_messages (conversation_id, id DESC);
+

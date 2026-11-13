@@ -6,12 +6,18 @@ edition.workspace = true
 [dependencies]
 rs-common.workspace = true
 
+async-trait.workspace = true
 chrono.workspace = true
+rand.workspace = true
+rtc.workspace = true
 serde.workspace = true
+serde_json.workspace = true
 sqlx.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
+tracing.workspace = true
 uuid.workspace = true
+webrtc.workspace = true
 
 [lints]
 workspace = true
