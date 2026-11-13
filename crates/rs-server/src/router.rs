@@ -44,5 +44,13 @@ pub fn build_router(state: AppState) -> Router {
             "/api/dms/{id}/messages",
             get(routes::dms::get_dm_history).post(routes::dms::send_dm),
         )
+        .route(
+            "/api/voice/channels",
+            get(routes::voice::list_channels).post(routes::voice::create_channel),
+        )
+        .route(
+            "/api/voice/channels/{id}",
+            axum::routing::delete(routes::voice::delete_channel),
+        )
         .with_state(state)
 }

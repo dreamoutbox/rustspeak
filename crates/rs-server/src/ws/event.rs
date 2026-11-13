@@ -21,6 +21,21 @@ pub enum ServerEvent {
     ChannelDeleted { channel_id: Uuid },
     /// A user's online presence changed.
     PresenceUpdated { user_id: Uuid, online: bool },
+    /// Updated participant list for a voice channel.
+    #[serde(rename = "voice.participants")]
+    VoiceParticipants {
+        channel_id: Uuid,
+        user_ids: Vec<Uuid>,
+    },
+    /// WebRTC SDP offer from the SFU to the client.
+    #[serde(rename = "voice.offer")]
+    VoiceOffer { sdp: String },
+    /// WebRTC SDP answer from the SFU to the client.
+    #[serde(rename = "voice.answer")]
+    VoiceAnswer { sdp: String },
+    /// WebRTC ICE candidate from the SFU to the client.
+    #[serde(rename = "voice.ice")]
+    VoiceIce { candidate: serde_json::Value },
     /// Response to a client ping.
     Pong,
 }
@@ -31,4 +46,28 @@ pub enum ServerEvent {
 pub enum ClientCommand {
     /// Application-level heartbeat ping.
     Ping,
+    /// Join a voice channel.
+    #[serde(rename = "voice.join")]
+    VoiceJoin { channel_id: Uuid },
+    /// Leave the current voice channel.
+    #[serde(rename = "voice.leave")]
+    VoiceLeave,
+    /// Client SDP offer for WebRTC negotiation.
+    #[serde(rename = "voice.offer")]
+    VoiceOffer {
+        #[allow(dead_code)]
+        sdp: String,
+    },
+    /// Client SDP answer for WebRTC renegotiation.
+    #[serde(rename = "voice.answer")]
+    VoiceAnswer {
+        #[allow(dead_code)]
+        sdp: String,
+    },
+    /// Client ICE candidate.
+    #[serde(rename = "voice.ice")]
+    VoiceIce {
+        #[allow(dead_code)]
+        candidate: serde_json::Value,
+    },
 }

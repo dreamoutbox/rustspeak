@@ -106,13 +106,13 @@ Each lib crate: `thiserror` errors in `error.rs`; `rs-server` uses `anyhow` at b
   - [x] WS delivery only to the two participants
 - Done when: tests show a third user can neither read nor receive a DM; pair uniqueness is enforced.
 
-### Phase 9: Voice channels and signaling [STATUS: TODO]
+### Phase 9: Voice channels and signaling [STATUS: DONE]
 - Goal: Clients can join/leave a voice channel and exchange SDP/ICE via WS, with no media yet.
 - Tasks:
-  - [ ] `voice_channels` table, CRUD (Admin+)
-  - [ ] Signaling messages on the WS gateway: `voice.join`, `voice.leave`, `voice.offer/answer`, `voice.ice`
-  - [ ] Room membership state (in-memory) + `voice.participants` events; a user is in at most one room
-  - [ ] Cleanup on WS disconnect
+  - [x] `voice_channels` table, CRUD (Admin+)
+  - [x] Signaling messages on the WS gateway: `voice.join`, `voice.leave`, `voice.offer/answer`, `voice.ice`
+  - [x] Room membership state (in-memory) + `voice.participants` events; a user is in at most one room
+  - [x] Cleanup on WS disconnect
 - Done when: tests verify join/leave/disconnect membership events and the one-room rule.
 
 ### Phase 10: SFU audio relay [STATUS: TODO]

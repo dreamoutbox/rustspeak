@@ -1442,6 +1442,7 @@ dependencies = [
  "rs-common",
  "rs-text",
  "rs-user",
+ "rs-voice",
  "rustls",
  "serde",
  "serde_json",
@@ -1490,8 +1491,13 @@ dependencies = [
 name = "rs-voice"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "rs-common",
+ "serde",
+ "sqlx",
  "thiserror",
+ "tokio",
+ "uuid",
 ]
 
 [[package]]

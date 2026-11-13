@@ -107,10 +107,8 @@ async fn handle_socket(socket: WebSocket, state: AppState, user_id: uuid::Uuid) 
     while let Some(Ok(msg)) = ws_receiver.next().await {
         match msg {
             Message::Text(text) => {
-                if let Ok(ClientCommand::Ping) = serde_json::from_str::<ClientCommand>(&text)
-                    && let Ok(pong) = serde_json::to_string(&ServerEvent::Pong)
-                {
-                    let _ = ping_tx.send(Message::Text(pong.into()));
+                if let Ok(cmd) = serde_json::from_str::<ClientCommand>(&text) {
+                    handle_client_command(cmd, &state, user_id, &ping_tx).await;
                 }
             }
             Message::Close(_) => break,
@@ -119,6 +117,15 @@ async fn handle_socket(socket: WebSocket, state: AppState, user_id: uuid::Uuid) 
     }
 
     write_task.abort();
+    if let Some((channel_id, user_ids)) = state.voice_service.leave_room(user_id).await {
+        state
+            .ws_hub
+            .broadcast(&ServerEvent::VoiceParticipants {
+                channel_id,
+                user_ids,
+            })
+            .await;
+    }
     let became_offline = state.ws_hub.unregister(user_id, conn_id).await;
     if became_offline {
         state
@@ -128,5 +135,62 @@ async fn handle_socket(socket: WebSocket, state: AppState, user_id: uuid::Uuid) 
                 online: false,
             })
             .await;
+    }
+}
+
+async fn handle_client_command(
+    cmd: ClientCommand,
+    state: &AppState,
+    user_id: uuid::Uuid,
+    ping_tx: &mpsc::UnboundedSender<Message>,
+) {
+    match cmd {
+        ClientCommand::Ping => {
+            if let Ok(pong) = serde_json::to_string(&ServerEvent::Pong) {
+                let _ = ping_tx.send(Message::Text(pong.into()));
+            }
+        }
+        ClientCommand::VoiceJoin { channel_id } => {
+            match state.voice_service.join_room(user_id, channel_id).await {
+                Ok(outcome) => {
+                    if let Some((left_id, left_users)) = outcome.left_channel {
+                        state
+                            .ws_hub
+                            .broadcast(&ServerEvent::VoiceParticipants {
+                                channel_id: left_id,
+                                user_ids: left_users,
+                            })
+                            .await;
+                    }
+                    let (joined_id, joined_users) = outcome.joined_channel;
+                    state
+                        .ws_hub
+                        .broadcast(&ServerEvent::VoiceParticipants {
+                            channel_id: joined_id,
+                            user_ids: joined_users,
+                        })
+                        .await;
+                }
+                Err(err) => {
+                    tracing::debug!(?user_id, %channel_id, error = %err, "voice.join rejected");
+                }
+            }
+        }
+        ClientCommand::VoiceLeave => {
+            if let Some((channel_id, user_ids)) = state.voice_service.leave_room(user_id).await {
+                state
+                    .ws_hub
+                    .broadcast(&ServerEvent::VoiceParticipants {
+                        channel_id,
+                        user_ids,
+                    })
+                    .await;
+            }
+        }
+        ClientCommand::VoiceOffer { .. }
+        | ClientCommand::VoiceAnswer { .. }
+        | ClientCommand::VoiceIce { .. } => {
+            // Media negotiation via SFU is wired in Phase 10.
+        }
     }
 }

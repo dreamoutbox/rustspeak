@@ -16,6 +16,7 @@ edition = "2024"
 rs-common = { path = "crates/rs-common" }
 rs-text = { path = "crates/rs-text" }
 rs-user = { path = "crates/rs-user" }
+rs-voice = { path = "crates/rs-voice" }
 
 anyhow = "1"
 argon2 = "0.5"

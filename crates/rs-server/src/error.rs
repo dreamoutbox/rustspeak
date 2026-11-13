@@ -3,6 +3,7 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use rs_text::TextError;
 use rs_user::UserError;
+use rs_voice::VoiceError;
 use serde::Serialize;
 
 #[derive(Serialize)]
@@ -54,6 +55,22 @@ impl From<UserError> for ApiError {
             }
             UserError::Common(_) => {
                 tracing::error!(error = %err, "internal common error");
+                return Self::new(StatusCode::INTERNAL_SERVER_ERROR, "internal server error");
+            }
+        };
+        Self::new(status, err.to_string())
+    }
+}
+
+impl From<VoiceError> for ApiError {
+    fn from(err: VoiceError) -> Self {
+        let status = match &err {
+            VoiceError::InvalidInput(_) => StatusCode::BAD_REQUEST,
+            VoiceError::ChannelNameTaken => StatusCode::CONFLICT,
+            VoiceError::NotFound => StatusCode::NOT_FOUND,
+            VoiceError::Forbidden(_) => StatusCode::FORBIDDEN,
+            VoiceError::Database(_) | VoiceError::Common(_) => {
+                tracing::error!(error = %err, "internal voice domain error");
                 return Self::new(StatusCode::INTERNAL_SERVER_ERROR, "internal server error");
             }
         };

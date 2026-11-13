@@ -495,6 +495,109 @@ async fn websocket_gateway_auth_and_realtime_broadcast() {
 }
 
 #[tokio::test]
+async fn voice_signaling_membership_one_room_rule_and_disconnect_cleanup() {
+    use futures_util::SinkExt;
+
+    let db = TestDb::new().await.expect("create test db");
+    let state = AppState::new(db.pool().clone(), TEST_SECRET);
+    state.voice_service.seed_default_channel().await.unwrap();
+    let app = build_router(state);
+
+    let (alice_id, alice_tok) = register_user(&app, "v_alice").await;
+    let (_bob_id, bob_tok) = register_user(&app, "v_bob").await;
+
+    // Create a second voice channel as Owner.
+    let vc_res = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/voice/channels")
+                .header(header::AUTHORIZATION, format!("Bearer {alice_tok}"))
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from(json!({"name": "Gaming"}).to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(vc_res.status(), StatusCode::CREATED);
+
+    let list_res = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/voice/channels")
+                .header(header::AUTHORIZATION, format!("Bearer {bob_tok}"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let list_body = json_body(list_res).await;
+    let ch1 = list_body["channels"][0]["id"].as_str().unwrap().to_string();
+    let ch2 = list_body["channels"][1]["id"].as_str().unwrap().to_string();
+
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    let app_for_server = app.clone();
+    let server_handle = tokio::spawn(async move {
+        axum::serve(listener, app_for_server).await.unwrap();
+    });
+
+    let (mut ws_alice, _) =
+        tokio_tungstenite::connect_async(format!("ws://{addr}/ws?token={alice_tok}"))
+            .await
+            .unwrap();
+    let _ = next_ws_json(&mut ws_alice).await;
+
+    let (mut ws_bob, _) =
+        tokio_tungstenite::connect_async(format!("ws://{addr}/ws?token={bob_tok}"))
+            .await
+            .unwrap();
+    let _ = next_ws_json(&mut ws_bob).await;
+
+    // Alice joins ch1 -> Bob sees voice.participants for ch1 containing alice_id.
+    ws_alice
+        .send(tokio_tungstenite::tungstenite::Message::Text(
+            json!({"type": "voice.join", "channel_id": ch1})
+                .to_string()
+                .into(),
+        ))
+        .await
+        .unwrap();
+    let p1 = next_ws_event_of_type(&mut ws_bob, "voice.participants").await;
+    assert_eq!(p1["channel_id"], ch1);
+    assert_eq!(p1["user_ids"], json!([alice_id]));
+
+    // Alice switches to ch2 -> Bob sees ch1 empty and ch2 with alice_id (one-room rule).
+    ws_alice
+        .send(tokio_tungstenite::tungstenite::Message::Text(
+            json!({"type": "voice.join", "channel_id": ch2})
+                .to_string()
+                .into(),
+        ))
+        .await
+        .unwrap();
+    let left_ch1 = next_ws_event_of_type(&mut ws_bob, "voice.participants").await;
+    assert_eq!(left_ch1["channel_id"], ch1);
+    assert_eq!(left_ch1["user_ids"], json!([]));
+
+    let joined_ch2 = next_ws_event_of_type(&mut ws_bob, "voice.participants").await;
+    assert_eq!(joined_ch2["channel_id"], ch2);
+    assert_eq!(joined_ch2["user_ids"], json!([alice_id]));
+
+    // Alice disconnects WS -> Bob sees ch2 empty.
+    drop(ws_alice);
+    let cleaned = next_ws_event_of_type(&mut ws_bob, "voice.participants").await;
+    assert_eq!(cleaned["channel_id"], ch2);
+    assert_eq!(cleaned["user_ids"], json!([]));
+
+    server_handle.abort();
+    db.cleanup().await.expect("cleanup test db");
+}
+
+#[tokio::test]
 async fn direct_messages_pair_uniqueness_privacy_and_ws_delivery() {
     let db = TestDb::new().await.expect("create test db");
     let state = AppState::new(db.pool().clone(), TEST_SECRET);
