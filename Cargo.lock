@@ -1942,7 +1942,7 @@ dependencies = [
 
 [[package]]
 name = "rs-common"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "serde",
  "sqlx",
@@ -1953,7 +1953,7 @@ dependencies = [
 
 [[package]]
 name = "rs-server"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -1979,7 +1979,7 @@ dependencies = [
 
 [[package]]
 name = "rs-text"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "chrono",
  "rs-common",
@@ -1993,7 +1993,7 @@ dependencies = [
 
 [[package]]
 name = "rs-user"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "argon2",
  "base64 0.22.1",
@@ -2011,7 +2011,7 @@ dependencies = [
 
 [[package]]
 name = "rs-voice"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "async-trait",
  "chrono",
