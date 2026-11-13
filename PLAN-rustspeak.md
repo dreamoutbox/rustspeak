@@ -134,13 +134,13 @@ Each lib crate: `thiserror` errors in `error.rs`; `rs-server` uses `anyhow` at b
   - [x] Dev proxy to the HTTPS backend; build output served by `rs-server` (static files)
 - Done when: `npm run build` and type-check pass; manual login works against the local server.
 
-### Phase 12: Frontend text and DM UI [STATUS: TODO]
+### Phase 12: Frontend text and DM UI [STATUS: DONE]
 - Goal: Usable chat in the browser.
 - Tasks:
-  - [ ] Channel list, message list with infinite scroll up, composer
-  - [ ] WS client with reconnect and gap fill from REST history
-  - [ ] DM list/conversation view, online indicators
-  - [ ] Admin panel: manage channels and user roles
+  - [x] Channel list, message list with infinite scroll up, composer
+  - [x] WS client with reconnect and gap fill from REST history
+  - [x] DM list/conversation view, online indicators
+  - [x] Admin panel: manage channels and user roles
 - Done when: two browsers chat in a channel and by DM in real time.
 
 ### Phase 13: Frontend voice UI [STATUS: TODO]

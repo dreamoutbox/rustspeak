@@ -80,3 +80,12 @@ pub async fn me(
     let user = state.user_service.get_user(claims.sub).await?;
     Ok(Json(MeResponse { user }))
 }
+
+/// Lists active users for the member directory and DM picker (`GET /api/users`).
+pub async fn list_directory(
+    State(state): State<AppState>,
+    _auth: AuthUser,
+) -> Result<Json<crate::routes::admin::UsersListResponse>, ApiError> {
+    let users = state.user_service.list_member_directory().await?;
+    Ok(Json(crate::routes::admin::UsersListResponse { users }))
+}

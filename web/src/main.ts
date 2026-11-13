@@ -23,3 +23,4 @@ setUnauthorizedHandler(() => {
 });
 
 app.mount('#app');
+

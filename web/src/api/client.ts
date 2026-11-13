@@ -135,3 +135,4 @@ export async function apiFetch<T>(
 
   return (await response.json()) as T;
 }
+

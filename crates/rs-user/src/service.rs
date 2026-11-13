@@ -121,6 +121,12 @@ impl UserService {
         Ok(user)
     }
 
+    /// Lists all active (non-disabled) users for the authenticated member directory.
+    pub async fn list_member_directory(&self) -> Result<Vec<User>, UserError> {
+        let users = self.repo.list_users().await?;
+        Ok(users.into_iter().filter(|u| !u.disabled).collect())
+    }
+
     /// Lists all users (requires `Role::Admin` or `Role::Owner`).
     pub async fn list_users(&self, actor_role: Role) -> Result<Vec<User>, UserError> {
         if actor_role < Role::Admin {

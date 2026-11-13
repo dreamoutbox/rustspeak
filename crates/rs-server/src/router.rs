@@ -27,6 +27,7 @@ pub fn build_router_with_static(state: AppState, static_dir: &Path) -> Router {
         .route("/api/auth/refresh", post(routes::auth::refresh))
         .route("/api/auth/logout", post(routes::auth::logout))
         .route("/api/users/me", get(routes::auth::me))
+        .route("/api/users", get(routes::auth::list_directory))
         .route("/api/admin/users", get(routes::admin::list_users))
         .route(
             "/api/admin/users/{id}/role",

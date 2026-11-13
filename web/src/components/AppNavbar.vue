@@ -38,3 +38,4 @@ async function handleLogout(): Promise<void> {
   await router.push({ name: 'login' });
 }
 </script>
+

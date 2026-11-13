@@ -1,23 +1,42 @@
 <template>
-  <div class="min-vh-100 d-flex flex-column">
+  <div class="vh-100 d-flex flex-column overflow-hidden">
     <AppNavbar />
 
-    <main class="container py-4">
-      <div class="card">
-        <div class="card-body">
-          <h2 class="h5 mb-2">Welcome, {{ auth.user?.username }}</h2>
-          <p class="text-secondary mb-0">
-            Session authenticated. Text channels, DMs, and voice UI will appear here.
-          </p>
-        </div>
-      </div>
-    </main>
+    <div v-if="loadError" class="alert alert-danger m-3 mb-0 py-2 small">
+      {{ loadError }}
+    </div>
+
+    <div class="d-flex flex-grow-1 overflow-hidden">
+      <ChannelSidebar />
+      <MessagePane />
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { onMounted, onUnmounted, ref } from 'vue';
+import { ApiError } from '@/api/client';
 import AppNavbar from '@/components/AppNavbar.vue';
-import { useAuthStore } from '@/stores/auth';
+import ChannelSidebar from '@/components/ChannelSidebar.vue';
+import MessagePane from '@/components/MessagePane.vue';
+import { useChatStore } from '@/stores/chat';
+import { useRealtimeStore } from '@/stores/realtime';
 
-const auth = useAuthStore();
+const chat = useChatStore();
+const realtime = useRealtimeStore();
+const loadError = ref('');
+
+onMounted(async () => {
+  realtime.connect();
+  try {
+    await chat.loadInitialData();
+  } catch (err) {
+    loadError.value = err instanceof ApiError ? err.message : 'Failed to load workspace data.';
+  }
+});
+
+onUnmounted(() => {
+  realtime.disconnect();
+  chat.reset();
+});
 </script>

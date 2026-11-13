@@ -53,3 +53,4 @@ router.beforeEach(async (to) => {
 
   return true;
 });
+
