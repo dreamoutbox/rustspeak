@@ -10,4 +10,3 @@ pub struct AuthTokens {
     /// Access token lifetime in seconds.
     pub expires_in_secs: u64,
 }
-

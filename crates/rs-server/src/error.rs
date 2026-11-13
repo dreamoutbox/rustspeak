@@ -45,7 +45,7 @@ impl From<UserError> for ApiError {
             UserError::InvalidCredentials | UserError::InvalidToken | UserError::TokenReused => {
                 StatusCode::UNAUTHORIZED
             }
-            UserError::UserDisabled => StatusCode::FORBIDDEN,
+            UserError::UserDisabled | UserError::Forbidden(_) => StatusCode::FORBIDDEN,
             UserError::NotFound => StatusCode::NOT_FOUND,
             UserError::PasswordHash(_) | UserError::JwtEncode(_) | UserError::Database(_) => {
                 tracing::error!(error = %err, "internal user domain error");

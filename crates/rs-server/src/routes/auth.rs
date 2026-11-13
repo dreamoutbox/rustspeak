@@ -80,4 +80,3 @@ pub async fn me(
     let user = state.user_service.get_user(claims.sub).await?;
     Ok(Json(MeResponse { user }))
 }
-

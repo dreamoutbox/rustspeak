@@ -62,13 +62,13 @@ Each lib crate: `thiserror` errors in `error.rs`; `rs-server` uses `anyhow` at b
   - [x] Auth extractor in axum (validates access JWT)
 - Done when: unit + integration tests cover register, duplicate user, bad password, refresh rotation, reuse of a revoked refresh token being rejected.
 
-### Phase 4: Roles and authorization [STATUS: TODO]
+### Phase 4: Roles and authorization [STATUS: DONE]
 - Goal: Global `Owner/Admin/Member` roles enforced on endpoints.
 - Tasks:
-  - [ ] `Role` enum (in `rs-common` or `rs-user`), column on `users`
-  - [ ] First registered user becomes `Owner` (race-safe); later users `Member`
-  - [ ] `require_role` extractor/guard
-  - [ ] Admin endpoints: list users, change role (Owner only can create Admins; Owner role not transferable in phase 1), disable user
+  - [x] `Role` enum (in `rs-common` or `rs-user`), column on `users`
+  - [x] First registered user becomes `Owner` (race-safe); later users `Member`
+  - [x] `require_role` extractor/guard
+  - [x] Admin endpoints: list users, change role (Owner only can create Admins; Owner role not transferable in phase 1), disable user
 - Done when: tests show Member is rejected from admin routes, Admin cannot promote to Owner, first-user-owner rule holds under concurrent registration.
 
 ### Phase 5: TLS [STATUS: TODO]

@@ -1,4 +1,4 @@
-use rs_common::TestDb;
+use rs_common::{Role, TestDb};
 
 use crate::{
     TokenService, UserError, UserRepository, UserService, hash_password, validate_password,
@@ -110,6 +110,36 @@ async fn logout_revokes_refresh_token() {
 
     let after_logout = service.refresh(&tokens.refresh_token).await;
     assert!(matches!(after_logout, Err(UserError::TokenReused)));
+
+    db.cleanup().await.expect("cleanup test db");
+}
+
+#[tokio::test]
+async fn concurrent_registration_assigns_exactly_one_owner() {
+    let (db, service, _) = setup_service().await;
+
+    let mut handles = Vec::with_capacity(8);
+    for idx in 0..8 {
+        let svc = service.clone();
+        handles.push(tokio::spawn(async move {
+            let name = format!("user_{idx}");
+            svc.register(&name, "super-secret-pass").await
+        }));
+    }
+
+    let mut owners = 0usize;
+    let mut members = 0usize;
+    for handle in handles {
+        let (user, _) = handle.await.unwrap().expect("concurrent register");
+        match user.role {
+            Role::Owner => owners += 1,
+            Role::Member => members += 1,
+            Role::Admin => panic!("unexpected admin role on registration"),
+        }
+    }
+
+    assert_eq!(owners, 1);
+    assert_eq!(members, 7);
 
     db.cleanup().await.expect("cleanup test db");
 }

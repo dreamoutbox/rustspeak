@@ -1,4 +1,5 @@
 use chrono::Utc;
+use rs_common::Role;
 use uuid::Uuid;
 
 use crate::{
@@ -118,6 +119,87 @@ impl UserService {
             return Err(UserError::UserDisabled);
         }
         Ok(user)
+    }
+
+    /// Lists all users (requires `Role::Admin` or `Role::Owner`).
+    pub async fn list_users(&self, actor_role: Role) -> Result<Vec<User>, UserError> {
+        if actor_role < Role::Admin {
+            return Err(UserError::Forbidden(
+                "admin role required to list users".to_string(),
+            ));
+        }
+        self.repo.list_users().await
+    }
+
+    /// Changes `target_id`'s role to `new_role` (only `Owner` can assign `Admin`/`Member`; `Owner` is not transferable).
+    pub async fn change_role(
+        &self,
+        actor_id: Uuid,
+        actor_role: Role,
+        target_id: Uuid,
+        new_role: Role,
+    ) -> Result<User, UserError> {
+        if actor_role != Role::Owner {
+            return Err(UserError::Forbidden(
+                "only the owner can change user roles".to_string(),
+            ));
+        }
+        if new_role == Role::Owner {
+            return Err(UserError::Forbidden(
+                "owner role cannot be assigned".to_string(),
+            ));
+        }
+        if actor_id == target_id {
+            return Err(UserError::Forbidden(
+                "cannot change your own role".to_string(),
+            ));
+        }
+
+        self.repo
+            .update_role(target_id, new_role)
+            .await?
+            .ok_or(UserError::NotFound)
+    }
+
+    /// Enables or disables `target_id` (requires `Admin+`, target must have lower role than actor).
+    pub async fn set_disabled(
+        &self,
+        actor_id: Uuid,
+        actor_role: Role,
+        target_id: Uuid,
+        disabled: bool,
+    ) -> Result<User, UserError> {
+        if actor_role < Role::Admin {
+            return Err(UserError::Forbidden(
+                "admin role required to disable users".to_string(),
+            ));
+        }
+        if actor_id == target_id {
+            return Err(UserError::Forbidden(
+                "cannot disable your own account".to_string(),
+            ));
+        }
+
+        let target = self
+            .repo
+            .find_by_id(target_id)
+            .await?
+            .ok_or(UserError::NotFound)?;
+        if target.role >= actor_role {
+            return Err(UserError::Forbidden(
+                "cannot modify a user with equal or higher role".to_string(),
+            ));
+        }
+
+        let updated = self
+            .repo
+            .set_disabled(target_id, disabled)
+            .await?
+            .ok_or(UserError::NotFound)?;
+        if disabled {
+            self.repo.revoke_all_user_tokens(target_id).await?;
+        }
+        Ok(updated)
     }
 
     async fn issue_token_pair(

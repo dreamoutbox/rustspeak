@@ -27,6 +27,10 @@ pub enum UserError {
     #[error("user account is disabled")]
     UserDisabled,
 
+    /// Caller lacks permission for the requested action.
+    #[error("forbidden: {0}")]
+    Forbidden(String),
+
     /// Requested user does not exist.
     #[error("user not found")]
     NotFound,

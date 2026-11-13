@@ -55,6 +55,7 @@ impl TokenService {
         let claims = Claims {
             sub: user.id,
             username: user.username.clone(),
+            role: user.role,
             iat: now,
             exp,
         };
@@ -87,4 +88,3 @@ impl TokenService {
         hasher.finalize().to_vec()
     }
 }
-

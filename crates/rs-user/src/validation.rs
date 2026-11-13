@@ -35,4 +35,3 @@ pub fn validate_password(password: &str) -> Result<(), UserError> {
     }
     Ok(())
 }
-

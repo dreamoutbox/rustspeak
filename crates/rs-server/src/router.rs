@@ -1,5 +1,5 @@
 use axum::Router;
-use axum::routing::{get, post};
+use axum::routing::{get, patch, post};
 
 use crate::routes;
 use crate::state::AppState;
@@ -13,6 +13,14 @@ pub fn build_router(state: AppState) -> Router {
         .route("/api/auth/refresh", post(routes::auth::refresh))
         .route("/api/auth/logout", post(routes::auth::logout))
         .route("/api/users/me", get(routes::auth::me))
+        .route("/api/admin/users", get(routes::admin::list_users))
+        .route(
+            "/api/admin/users/{id}/role",
+            patch(routes::admin::change_role),
+        )
+        .route(
+            "/api/admin/users/{id}/disabled",
+            patch(routes::admin::set_disabled),
+        )
         .with_state(state)
 }
-

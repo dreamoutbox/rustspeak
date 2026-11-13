@@ -109,3 +109,160 @@ async fn auth_rest_endpoints_end_to_end() {
 
     db.cleanup().await.expect("cleanup test db");
 }
+
+async fn register_user(app: &axum::Router, username: &str) -> (String, String) {
+    let res = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/auth/register")
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from(
+                    json!({"username": username, "password": "strong-password-1"}).to_string(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::CREATED);
+    let body = json_body(res).await;
+    (
+        body["user"]["id"].as_str().unwrap().to_string(),
+        body["tokens"]["access_token"].as_str().unwrap().to_string(),
+    )
+}
+
+#[tokio::test]
+async fn role_authorization_and_admin_endpoints() {
+    let db = TestDb::new().await.expect("create test db");
+    let state = AppState::new(db.pool().clone(), TEST_SECRET);
+    let app = build_router(state);
+
+    let (_owner_id, owner_token) = register_user(&app, "owner_u").await;
+    let (admin_id, _admin_token) = register_user(&app, "admin_u").await;
+    let (member_id, member_token) = register_user(&app, "member_u").await;
+
+    // Member is rejected from admin routes.
+    let member_list = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/admin/users")
+                .header(header::AUTHORIZATION, format!("Bearer {member_token}"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(member_list.status(), StatusCode::FORBIDDEN);
+
+    // Owner promotes admin_u to Admin.
+    let promote = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("PATCH")
+                .uri(format!("/api/admin/users/{admin_id}/role"))
+                .header(header::AUTHORIZATION, format!("Bearer {owner_token}"))
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from(json!({"role": "admin"}).to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(promote.status(), StatusCode::OK);
+    let promote_body = json_body(promote).await;
+    assert_eq!(promote_body["user"]["role"], "admin");
+
+    // Re-login admin_u so their JWT carries the new Admin role.
+    let admin_login = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/auth/login")
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from(
+                    json!({"username": "admin_u", "password": "strong-password-1"}).to_string(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let admin_login_body = json_body(admin_login).await;
+    let admin_token = admin_login_body["tokens"]["access_token"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    assert_ne!(admin_token, "");
+
+    // Admin cannot promote to Owner or change roles.
+    let admin_promote_owner = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("PATCH")
+                .uri(format!("/api/admin/users/{member_id}/role"))
+                .header(header::AUTHORIZATION, format!("Bearer {admin_token}"))
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from(json!({"role": "owner"}).to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(admin_promote_owner.status(), StatusCode::FORBIDDEN);
+
+    // Owner cannot assign Owner either.
+    let owner_promote_owner = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("PATCH")
+                .uri(format!("/api/admin/users/{member_id}/role"))
+                .header(header::AUTHORIZATION, format!("Bearer {owner_token}"))
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from(json!({"role": "owner"}).to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(owner_promote_owner.status(), StatusCode::FORBIDDEN);
+
+    // Admin can list users and disable a Member.
+    let admin_list = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("GET")
+                .uri("/api/admin/users")
+                .header(header::AUTHORIZATION, format!("Bearer {admin_token}"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(admin_list.status(), StatusCode::OK);
+    let list_body = json_body(admin_list).await;
+    assert_eq!(list_body["users"].as_array().unwrap().len(), 3);
+
+    let disable_member = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("PATCH")
+                .uri(format!("/api/admin/users/{member_id}/disabled"))
+                .header(header::AUTHORIZATION, format!("Bearer {admin_token}"))
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from(json!({"disabled": true}).to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(disable_member.status(), StatusCode::OK);
+    let disabled_body = json_body(disable_member).await;
+    assert_eq!(disabled_body["user"]["disabled"], true);
+
+    db.cleanup().await.expect("cleanup test db");
+}
